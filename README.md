@@ -1,6 +1,7 @@
-# 永恒枪械工坊：零 — 枪械等级重铸 · Forge 版（tacz_gun_level）
+# TACZ-元素升级 · Forge 版（tacz_gun_level）
 
-TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程是 Fabric 版（`tacz-gun-level`）的 Forge 移植：
+模组显示名 **「TACZ-元素升级」**，仓库 `tacz-element-upgrade-forge`。
+TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程是 Fabric 版（`tacz-element-upgrade`）的 Forge 移植：
 玩法、数值、芯片、元素反应、三台机器、金芯片获取链**与 Fabric 版逐条对齐**，
 差异全在平台层（注册、映射、事件、网络、mixin 装配）。
 每项效果的推导过程和实测数字写在 Fabric 版仓库的 README 里，这里只记 Forge 侧的实现约束。
@@ -15,6 +16,8 @@ TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程
 | Java | 17（构建工具链必须是 JDK17，见下） |
 
 成品：`build/libs/tacz-gun-level-1.0.0.jar`，放进实例的 `mods/` 即可。
+产物文件名跟着 `archives_base_name=tacz-gun-level`，**与仓库名不同是有意的**：`mod_id=tacz_gun_level` 是枪 NBT 的键名
+和 assets/data 的命名空间，跟着改名会让已升级的枪掉回 LV1。
 **没装 TACZ 也不会崩**：前置检测走 `Class.forName("com.tacz.guns.api.item.IGun", false, loader)`，
 缺席时只出方块与物品，所有 TACZ 相关逻辑短路（启动日志会打一行「前置 TACZ：未加载」）。
 
