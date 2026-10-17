@@ -1,7 +1,7 @@
 # TACZ-元素升级 · Forge 版（tacz_gun_level）
 
-模组显示名 **「TACZ-元素升级」**，仓库 `tacz-element-upgrade-forge`。
-TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程是 Fabric 版（`tacz-element-upgrade`）的 Forge 移植：
+模组显示名 **「TACZ-元素升级」**，仓库 `tacz-gun-level-forge`（GitHub 的仓库名只收 ASCII，中文名只进标题与描述）。
+TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程是 Fabric 版（`tacz-gun-level`）的 Forge 移植：
 玩法、数值、芯片、元素反应、三台机器、金芯片获取链**与 Fabric 版逐条对齐**，
 差异全在平台层（注册、映射、事件、网络、mixin 装配）。
 每项效果的推导过程和实测数字写在 Fabric 版仓库的 README 里，这里只记 Forge 侧的实现约束。
