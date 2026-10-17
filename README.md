@@ -122,7 +122,10 @@ export GRADLE_USER_HOME='<本机 Forge 缓存目录>'
 ```
 
 `gradle.properties` 里已经写好了那台机器的 JDK17 安装路径（`org.gradle.java.installations.paths`），
-换机器就改成自己的。首次构建要联网拉 ForgeGradle 与 userdev 依赖。
+换机器就改成自己的。首次构建要联网：ForgeGradle 与 userdev 依赖要拉，
+`gradlew` 本身的 gradle-8.5 发行版也是**按 `GRADLE_USER_HOME` 缓存**的
+（换个 `GRADLE_USER_HOME` 就得重新下一份，急着离线时可以直接用本机已缓存的
+`~/.gradle/wrapper/dists/gradle-8.5-bin/*/gradle-8.5/bin/gradle.bat` 代替 `gradlew.bat`）。
 
 验收产物时**别只看编译通过**：用 `javap -p -c` 看 class 里的成员名有没有被重映射成 SRG（`m_xxxx_`/`f_xxxx_`），
 这能确认 mixin 目标在正式环境里对得上。
