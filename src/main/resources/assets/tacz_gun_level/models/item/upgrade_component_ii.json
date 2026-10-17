@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "tacz_gun_level:item/upgrade_component_ii"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "I I",
+    "ISI",
+    "RGR"
+  ],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "S": { "item": "tacz:gun_smith_table" },
+    "R": { "item": "minecraft:redstone" },
+    "G": { "item": "minecraft:gold_ingot" }
+  },
+  "result": {
+    "item": "tacz_gun_level:chip_assembly_table"
+  }
+}

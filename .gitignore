@@ -1,0 +1,27 @@
+# 构建产物与 gradle 状态
+build/
+.gradle/
+out/
+run/
+
+# 从 Fabric 工程拷来的移植参考件，不参与编译
+port-incoming/
+
+# 前置模组 jar：第三方产物，自己下官方 TACZ 与 Geckolib 放进 ../forge-deps/
+forge-deps/
+libs/*.jar
+
+# 一次性构建/崩溃日志
+*.log
+err.txt
+errors.txt
+port-diff.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+*.iml

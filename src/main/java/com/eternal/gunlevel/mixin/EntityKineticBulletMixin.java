@@ -1,0 +1,385 @@
+package com.eternal.gunlevel.mixin;
+
+import com.eternal.gunlevel.GunLevelMod;
+import com.eternal.gunlevel.effect.AuroraState;
+import com.eternal.gunlevel.effect.BloomDomain;
+import com.eternal.gunlevel.effect.Chip;
+import com.eternal.gunlevel.effect.ChipState;
+import com.eternal.gunlevel.effect.CombatState;
+import com.eternal.gunlevel.effect.Element;
+import com.eternal.gunlevel.effect.LevelScaling;
+import com.eternal.gunlevel.effect.MomentumState;
+import com.eternal.gunlevel.item.GunAuroraData;
+import com.eternal.gunlevel.item.GunChipData;
+import com.eternal.gunlevel.item.GunCoreData;
+import com.eternal.gunlevel.util.ChipHints;
+import com.tacz.guns.api.item.IGun;
+import com.tacz.guns.entity.EntityKineticBullet.MaybeMultipartEntity;
+import com.tacz.guns.resource.pojo.data.gun.BulletData;
+import com.tacz.guns.resource.pojo.data.gun.GunData;
+import com.tacz.guns.util.TacHitResult;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
+import org.apache.commons.lang3.tuple.Pair;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.EnumSet;
+
+/**
+ * 子弹实体：构造时记录枪械等级（客户端/服务端都要，穿甲数值会随生成数据同步），
+ * 命中时按等级结算伤害倍率与武器面板暴击，并触发撕裂弹流血、元素附着与反应、战术芯片效果。
+ *
+ * <p>锚点是那个 protected 的全参构造（两个 public 构造都转调它），1.1.7 的 Forge 版在这里
+ * 就把开火那把枪的 ItemStack 传进来了，所以元素/芯片/等级直接读它，不必再回射手背包里找枪。
+ */
+@Mixin(com.tacz.guns.entity.EntityKineticBullet.class)
+public abstract class EntityKineticBulletMixin {
+
+	@Shadow(remap = false)
+	private float speed;
+	@Shadow(remap = false)
+	private int pierce;
+	@Shadow(remap = false)
+	private boolean isTracerAmmo;
+	/** 重武器（榴弹/火箭）爆炸那段的伤害，来自 BulletData 的 ExplosionData */
+	@Shadow(remap = false)
+	private float explosionDamage;
+	/**
+	 * 真实伤害结算入口（护甲两段拆分、击退都在里面）。
+	 * 强击连发的额外攻击直接把它再调一遍，所以额外攻击天然「吃同样的护甲与武器穿甲、
+	 * 同样触发命中效果、同样攒命中」，而扣弹药不在这条链路上，等于不消耗子弹。
+	 */
+	@Shadow(remap = false)
+	private void tacAttackEntity(MaybeMultipartEntity target, float damage,
+			Pair<DamageSource, DamageSource> sources) {
+	}
+
+	@Unique
+	private int gunlevel$level;
+	@Unique
+	private LivingEntity gunlevel$shooter;
+	@Unique
+	private boolean gunlevel$crit;
+	@Unique
+	private float gunlevel$critChance;
+	@Unique
+	private Element gunlevel$element = Element.NONE;
+	/** 连环暴击：是否装了、发射时射手是否在激化窗口里 */
+	@Unique
+	private boolean gunlevel$chainCrit;
+	@Unique
+	private boolean gunlevel$empowered;
+	/** 激化窗口在这发子弹第一次命中时开掉，穿透多个目标不重复开 */
+	@Unique
+	private boolean gunlevel$chainCritProcced;
+	/** 破甲强攻：是否装了、这一发是否触发 */
+	@Unique
+	private boolean gunlevel$armorBreak;
+	@Unique
+	private boolean gunlevel$pierceProc;
+	/** 高能弹匣：是否装了、这一发打出时弹匣余量是否充足（常驻条件，不掷骰） */
+	@Unique
+	private boolean gunlevel$highMag;
+	/** 极光追击：是否装了（命中记账按射手累计，见 AuroraState） */
+	@Unique
+	private boolean gunlevel$aurora;
+	/** 极光追击：这发子弹是不是从极光匣里打出去的（生成时按那把枪的标记定格），这种命中不记账 */
+	@Unique
+	private boolean gunlevel$auroraMag;
+	/** 穿透多个目标时一发子弹只攒一次命中，和连环暴击一样按发计，不按命中实体数计 */
+	@Unique
+	private boolean gunlevel$auroraCounted;
+	/** 迅雷之音：是否装了、一发子弹只抵一次冷却（和极光一样按发计） */
+	@Unique
+	private boolean gunlevel$thunder;
+	@Unique
+	private boolean gunlevel$thunderCounted;
+	/** 强击连发：是否装了 */
+	@Unique
+	private boolean gunlevel$barrage;
+	/**
+	 * 发射那把枪装的芯片全集：元素反应那一侧要用它判断凝晶召唤（要不要召唤、造物给几级抗性）。
+	 * 上面那些按芯片分的布尔是结算路径上的热路径 shortcut，两者都在构造时定格。
+	 */
+	@Unique
+	private EnumSet<Chip> gunlevel$chips = EnumSet.noneOf(Chip.class);
+	/** 势如破竹：是否装了 */
+	@Unique
+	private boolean gunlevel$momentum;
+	/** 势如破竹：这发子弹生成那一刻射手的加成档位（0=没有，1=满值，逐秒掉 1/6），定格后结算不再读窗口 */
+	@Unique
+	private float gunlevel$momentumPower;
+	/** 势如破竹：这发是不是打头。TACZ 在 onHitEntity 里就把爆头倍率乘进伤害了，只能在那个时刻抓标记 */
+	@Unique
+	private boolean gunlevel$headshot;
+	/** 正在结算强击连发的额外攻击：这一层不再掷骰、伤害也不再重复缩放（传进去的已经是最终值） */
+	@Unique
+	private boolean gunlevel$barraging;
+	/** 这一发实际乘上去的暴击倍率（未暴击恒为 1），额外攻击按它把自己那份暴击加成除回去 */
+	@Unique
+	private float gunlevel$critApplied = 1.0F;
+
+	@Inject(method = "<init>(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;"
+			+ "Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;"
+			+ "Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/resources/ResourceLocation;"
+			+ "Lnet/minecraft/resources/ResourceLocation;Z"
+			+ "Lcom/tacz/guns/resource/pojo/data/gun/GunData;"
+			+ "Lcom/tacz/guns/resource/pojo/data/gun/BulletData;)V", at = @At("TAIL"), remap = false)
+	private void gunlevel$applyLevel(EntityType<? extends Projectile> type, Level world,
+			LivingEntity shooter, ItemStack gunStack, ResourceLocation ammoId, ResourceLocation gunId,
+			ResourceLocation gunDisplayId, boolean tracer, GunData gunData, BulletData data,
+			CallbackInfo ci) {
+		this.gunlevel$shooter = shooter;
+		// 元素与芯片都只来自枪上装的配件，与等级无关
+		this.gunlevel$element = GunCoreData.get(gunStack);
+		EnumSet<Chip> chips = GunChipData.get(gunStack);
+		this.gunlevel$chainCrit = chips.contains(Chip.CHAIN_CRIT);
+		this.gunlevel$armorBreak = chips.contains(Chip.ARMOR_BREAK);
+		// 高能弹匣：余量判定在这发子弹生成时定格。TACZ 的 LivingEntityShoot 先扣弹再异步建子弹实体，
+		// 所以这里读到的已经是减去这一发后的数量，配 >= 才等于玩家口径的「开火时弹匣里多于 20 发」。
+		this.gunlevel$highMag = chips.contains(Chip.HIGH_MAG) && gunlevel$hasAmmoMargin(gunStack);
+		this.gunlevel$aurora = chips.contains(Chip.AURORA);
+		// 极光匣的标记在那把枪的 NBT 上，此刻定格：这一匣打出去的命中不参与攒下一匣
+		this.gunlevel$auroraMag = GunAuroraData.isOn(gunStack);
+		this.gunlevel$barrage = chips.contains(Chip.BARRAGE);
+		this.gunlevel$momentum = chips.contains(Chip.MOMENTUM);
+		this.gunlevel$thunder = chips.contains(Chip.THUNDER_VOICE);
+		this.gunlevel$chips = chips;
+
+		int level = LevelScaling.levelOfStack(gunStack);
+		if (level <= 0) {
+			return;
+		}
+		this.gunlevel$level = level;
+		if (LevelScaling.currentLevel() <= 0) {
+			// 射击窗口内 BulletData 已给出缩放后的初速，不再重复乘
+			this.speed *= (float) LevelScaling.speedScale(level);
+		}
+
+		if (level >= 5 && GunLevelMod.CONFIG.lv5Effect == 1) {
+			this.pierce += 2;
+			this.isTracerAmmo = true;
+		}
+		// 暴击：武器面板暴击率（改造基础 5% + LV5 15% + 连环暴击 2%×等级），一发子弹掷一次
+		double chance = LevelScaling.critChance(level, this.gunlevel$chainCrit);
+		if (this.gunlevel$chainCrit) {
+			this.gunlevel$empowered = !world.isClientSide
+					&& ChipState.isEmpowered(shooter, world.getGameTime());
+			if (this.gunlevel$empowered) {
+				chance += GunLevelMod.CONFIG.chipEmpoweredChancePerLevel * level;
+			}
+		}
+		// 势如破竹：把射手此刻的加成档位定格在这一发上，暴击率和非头部增伤都乘它。
+		// 定格（而不是结算时再读窗口）才能让同一发的递归和跨 tick 的结算不自我放大。
+		if (this.gunlevel$momentum && !world.isClientSide) {
+			double power = MomentumState.strength(shooter, world.getGameTime());
+			this.gunlevel$momentumPower = (float) power;
+			chance += GunLevelMod.CONFIG.chipMomentumCritChancePerLevel * level * power;
+		}
+		this.gunlevel$critChance = (float) chance;
+		// 只掷骰，不开激化窗口：空开枪不该触发连环暴击，生效挪到命中结算里
+		if (world.getRandom().nextFloat() < this.gunlevel$critChance) {
+			this.gunlevel$crit = true;
+		}
+		// 破甲强攻：每发子弹掷一次概率（每级放大），触发那发在命中结算里同时吃穿甲与增伤
+		if (this.gunlevel$armorBreak && world.getRandom().nextFloat()
+				< (float) (GunLevelMod.CONFIG.chipArmorPierceChancePerLevel * level)) {
+			this.gunlevel$pierceProc = true;
+		}
+		// 重武器的爆炸是独立的一段伤害：它不走 tacAttackEntity，而是把 explosionDamage
+		// 当爆炸威力交给 ProjectileExplosion，所以等级加成要在这里补到字段上，
+		// 命中实体/命中方块/引信到点三个爆炸入口会自动跟着变。爆炸只吃等级倍率，不跟暴击。
+		if (this.explosionDamage > 0) {
+			this.explosionDamage *= (float) LevelScaling.damageScale(level);
+		}
+	}
+
+	/**
+	 * 势如破竹只加「非头部」伤害，而 TACZ 在 onHitEntity 里就把爆头倍率乘进了伤害值，
+	 * 到 tacAttackEntity 时已经看不出来这一发是不是打头，所以标记只能在这里抓。
+	 * handler 必须把目标的三个参数写全（少一个就是 InvalidInjectionException，游戏直接起不来），
+	 * 后两个 Vec3 用不上也不能省。
+	 */
+	@Inject(method = "onHitEntity", at = @At("HEAD"), remap = false)
+	private void gunlevel$catchHeadshot(TacHitResult hit, Vec3 hitPos, Vec3 cameraPos,
+			CallbackInfo ci) {
+		this.gunlevel$headshot = hit.isHeadshot();
+	}
+
+	/**
+	 * 实际伤害唯一入口：TACZ 的 getDamage 在枪械带距离伤害表时会无视 damageAmount，
+	 * 所以直接缩放传入的伤害，基础加成和暴击都落在这里。
+	 */
+	@ModifyVariable(method = "tacAttackEntity", at = @At("HEAD"), argsOnly = true,
+			ordinal = 0, remap = false)
+	private float gunlevel$scaledDamage(float damage) {
+		float scaled = this.gunlevel$applyScale(damage);
+		if (this.gunlevel$pierceProc && !this.gunlevel$barraging) {
+			// 触发强攻那发同时走穿甲和增伤：增伤乘在整段伤害上，两段都算到
+			scaled *= (float) GunLevelMod.CONFIG.chipArmorPierceMultiplier;
+		}
+		return scaled;
+	}
+
+	/**
+	 * 破甲强攻：在武器自带穿甲之上再加一档，不是顶成 1。TACZ 把一次命中拆成两段伤害——
+	 * 吃护甲那段拿 damage*(1-r)，无视护甲那段拿 damage*r，所以 r 就是穿甲比例。
+	 * 默认包 23 把枪自带 r0 跨 0~0.75，顶满等于给零穿甲的手枪微冲直接翻倍、
+	 * 又让 hk_g3/ai_awp/m95 这些高穿甲枪一点加成都吃不到，加值能把逐枪跨度压掉一半左右。
+	 * index 6 是 tacAttackEntity 里那个截断后的比例（局部表：1=目标、2=damage、3=伤害源对、
+	 * 4/5=两段各自的 DamageSource、6=clamp(armorIgnore,0,1) 即 r、7=1-r），
+	 * 挂在它唯一的赋值上（@At("STORE")），不碰 MC 符号，省得依赖 refmap。
+	 */
+	@ModifyVariable(method = "tacAttackEntity", at = @At("STORE"), index = 6, remap = false)
+	private float gunlevel$forceArmorPierce(float ratio) {
+		return this.gunlevel$pierceProc
+				? Math.min(1.0F, ratio + (float) GunLevelMod.CONFIG.chipArmorPierceBonus)
+				: ratio;
+	}
+
+	@Unique
+	private static boolean gunlevel$hasAmmoMargin(ItemStack gunStack) {
+		if (gunStack.isEmpty()) {
+			return false;
+		}
+		IGun gun = IGun.getIGunOrNull(gunStack);
+		return gun != null && gun.getCurrentAmmoCount(gunStack) >= GunLevelMod.CONFIG.chipHighMagAmmo;
+	}
+
+	@Unique
+	private float gunlevel$applyScale(float damage) {
+		if (this.gunlevel$level <= 0 || damage <= 0) {
+			return damage;
+		}
+		// 强击连发的额外攻击：传进来的就是这一次命中的最终伤害，别再乘一遍等级/暴击/高能弹匣
+		if (this.gunlevel$barraging) {
+			return damage;
+		}
+		// 高能弹匣的点数加在面板伤害那一档，所以要在等级倍率之前进账（会被 damageScale 再乘一遍）
+		float base = this.gunlevel$highMag
+				? damage + (float) LevelScaling.highMagBasePoints(this.gunlevel$level)
+				: damage;
+		float scaled = base * (float) LevelScaling.damageScale(this.gunlevel$level);
+		this.gunlevel$critApplied = 1.0F;
+		if (this.gunlevel$crit) {
+			this.gunlevel$critApplied = (float) LevelScaling.critMultiplier(
+					this.gunlevel$level, this.gunlevel$empowered);
+			scaled *= this.gunlevel$critApplied;
+		}
+		if (this.gunlevel$highMag) {
+			scaled *= (float) LevelScaling.highMagBonusScale(this.gunlevel$level);
+		}
+		// 势如破竹的非头部伤害加成：爆头那发跳过（伤害里已经含了 TACZ 的爆头倍率）
+		if (this.gunlevel$momentumPower > 0 && !this.gunlevel$headshot) {
+			scaled *= 1.0F + (float) (GunLevelMod.CONFIG.chipMomentumDamagePerLevel
+					* this.gunlevel$level * this.gunlevel$momentumPower);
+		}
+		// 净化领域：射手站在已点亮的苏生领域里时，这一发末尾再附加 0.02×等级×记录值 点伤害。
+		// 加在整条倍率链的最后，所以它不吃暴击、也不再被等级倍率乘一遍；强击连发那次额外攻击
+		// 走不到这里（上面已经 return），符合「额外攻击不重复吃加成」的既有口径。
+		if (this.gunlevel$shooter != null) {
+			scaled += (float) BloomDomain.purifyAttackBonus(this.gunlevel$shooter, this.gunlevel$level);
+		}
+		return scaled;
+	}
+
+	/**
+	 * 命中结算：撕裂弹流血、元素附着与反应、蒸发/融化/超载增伤。
+	 * 放在方法末尾，此时 damage 局部变量已经是上面缩放过的真实伤害，不会再乘第二遍。
+	 * 反应伤害归因到射手，并按这里的暴击率各自掷骰（融化除外）。
+	 * 打中的是盔甲架那种「本体 + 部件」的目标时按本体算（部件没有位置也没有血量）。
+	 */
+	@Inject(method = "tacAttackEntity", at = @At("RETURN"), remap = false)
+	private void gunlevel$onHit(MaybeMultipartEntity multipart, float damage,
+			Pair<DamageSource, DamageSource> sources, CallbackInfo ci) {
+		Entity target = multipart.core();
+		if (this.gunlevel$level <= 0 && this.gunlevel$element == Element.NONE) {
+			return;
+		}
+		// 强击连发的额外攻击是在这个方法内部递归进来的，飘字与粒子只在最外层那一次发，免得一行刷两遍
+		boolean outer = !this.gunlevel$barraging;
+		// 连环暴击：这发确实是暴击并且真的打中东西才开激化窗口，穿透多个目标也只开一次
+		if (this.gunlevel$crit && this.gunlevel$chainCrit && !this.gunlevel$chainCritProcced
+				&& target.level() instanceof ServerLevel) {
+			this.gunlevel$chainCritProcced = true;
+			if (ChipState.onCrit(this.gunlevel$shooter, target.level().getGameTime())) {
+				ChipHints.show(this.gunlevel$shooter, Chip.CHAIN_CRIT);
+			}
+		}
+		// 极光追击：确实打中东西才攒一次命中（空开枪不计），刚攒满那一刻提示换弹可用
+		if (this.gunlevel$aurora && !this.gunlevel$auroraCounted
+				&& target.level() instanceof ServerLevel) {
+			this.gunlevel$auroraCounted = true;
+			if (AuroraState.onHit(this.gunlevel$shooter, this.gunlevel$auroraMag)) {
+				ChipHints.show(this.gunlevel$shooter, Chip.AURORA, ChipHints.AURORA_READY);
+			}
+		}
+		// 迅雷之音：命中抵冷却，空开枪不白送
+		if (this.gunlevel$thunder && !this.gunlevel$thunderCounted
+				&& target.level() instanceof ServerLevel) {
+			this.gunlevel$thunderCounted = true;
+			com.eternal.gunlevel.effect.ThunderVoiceState.onHit(this.gunlevel$shooter);
+		}
+		// 势如破竹：对近距目标造成伤害才开加成窗口（远狙不触发）。窗口没开着时才新开，
+		// 开着的时候只有击杀能把它拉回满值；穿透多个目标按「一次造成伤害」算，所以也限 outer。
+		if (outer && this.gunlevel$momentum && target.level() instanceof ServerLevel
+				&& this.gunlevel$shooter != null
+				&& target.distanceToSqr(this.gunlevel$shooter)
+						<= GunLevelMod.CONFIG.chipMomentumRange * GunLevelMod.CONFIG.chipMomentumRange) {
+			boolean killed = target instanceof LivingEntity victim && !victim.isAlive();
+			if (MomentumState.onHit(this.gunlevel$shooter, target.level().getGameTime(), killed)) {
+				ChipHints.show(this.gunlevel$shooter, Chip.MOMENTUM);
+			}
+		}
+		// 反应暴击是独立属性：初始跟随武器面板，概率封顶 20%、倍率封顶 150%
+		CombatState.onBulletHit(target, this.gunlevel$shooter, this.gunlevel$element,
+				this.gunlevel$level, damage,
+				(float) LevelScaling.reactionCritChance(this.gunlevel$level), this.gunlevel$chips);
+
+		if (this.gunlevel$pierceProc && outer) {
+			ChipHints.show(this.gunlevel$shooter, Chip.ARMOR_BREAK);
+		}
+
+		if (this.gunlevel$crit && outer && target.level() instanceof ServerLevel serverWorld) {
+			Vec3 pos = target.position().add(0, target.getBbHeight() * 0.5, 0);
+			serverWorld.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, pos.x(), pos.y(), pos.z(),
+					8, 0.15, 0.2, 0.15, 0.0);
+		}
+
+		// 强击连发：这一次命中有几率再结算一遍（不消耗子弹）。掷骰在命中这一刻，所以空开枪不吃概率；
+		// 额外攻击递归走同一条结算，因此它同样触发元素反应与芯片命中效果，
+		// 但它自己那一次不再掷骰（barraging 挡着），也就不会滚成几何级数。
+		// 伤害要把这一发乘上去的暴击倍率除回去：描述里的「本次命中的 %1$s」是未暴击口径，额外攻击自己不吃暴击。
+		// 极光追击的「每发只攒一次」标志要先放开：那条规则管的是穿透多个目标（一颗子弹算一发），
+		// 而额外攻击是一次新的攻击，该攒。放开后穿透到的后续目标仍不会重复攒（递归里又置回了 true）。
+		if (outer && this.gunlevel$barrage
+				&& target.level().getRandom().nextFloat()
+				< (float) (GunLevelMod.CONFIG.chipBarrageChancePerLevel * this.gunlevel$level)
+				&& !target.isRemoved()) {
+			this.gunlevel$barraging = true;
+			this.gunlevel$auroraCounted = false;
+			try {
+				this.tacAttackEntity(multipart, damage / this.gunlevel$critApplied
+						* (float) GunLevelMod.CONFIG.chipBarrageDamageRatio, sources);
+			} finally {
+				this.gunlevel$barraging = false;
+			}
+			ChipHints.show(this.gunlevel$shooter, Chip.BARRAGE);
+		}
+	}
+}

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "A A",
+    "ASA",
+    "G G"
+  ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_block" },
+    "S": { "item": "tacz:gun_smith_table" },
+    "G": { "item": "minecraft:glowstone" }
+  },
+  "result": {
+    "item": "tacz_gun_level:element_synthesis_table"
+  }
+}

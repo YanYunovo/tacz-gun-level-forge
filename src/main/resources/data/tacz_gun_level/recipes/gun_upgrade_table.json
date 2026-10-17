@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "GGG",
+    "GSG",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gold_ingot"
+    },
+    "S": {
+      "item": "tacz:gun_smith_table"
+    }
+  },
+  "result": {
+    "item": "tacz_gun_level:gun_upgrade_table"
+  }
+}

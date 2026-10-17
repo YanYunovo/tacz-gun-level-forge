@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=south": {
+      "model": "tacz_gun_level:block/element_synthesis_table"
+    },
+    "facing=west": {
+      "model": "tacz_gun_level:block/element_synthesis_table",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "tacz_gun_level:block/element_synthesis_table",
+      "y": 180
+    },
+    "facing=east": {
+      "model": "tacz_gun_level:block/element_synthesis_table",
+      "y": 270
+    }
+  }
+}

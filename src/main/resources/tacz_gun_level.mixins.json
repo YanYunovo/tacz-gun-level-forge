@@ -1,0 +1,24 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.eternal.gunlevel.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "tacz_gun_level.refmap.json",
+  "mixins": [
+    "AttachmentDataUtilsMixin",
+    "BulletDataMixin",
+    "EntityKineticBulletMixin",
+    "GunDataMixin",
+    "GunReloadTimeMixin",
+    "LivingEntityReloadMixin",
+    "LivingEntityShootMixin",
+    "ModernKineticGunItemMixin"
+  ],
+  "client": [
+    "ClientGunTooltipMixin",
+    "LocalPlayerShootMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
