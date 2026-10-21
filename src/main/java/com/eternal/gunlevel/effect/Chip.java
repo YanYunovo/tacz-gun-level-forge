@@ -44,7 +44,13 @@ public enum Chip {
 	 * 迅雷之音：射速提升、主弹匣容量换射速；装雷核芯时多一个主动技能「迅捷闪冲」——
 	 * 按键向面朝方向冲刺并立刻补一发弹匣的零头，命中攒次数抵冷却。
 	 */
-	THUNDER_VOICE;
+	THUNDER_VOICE,
+	/**
+	 * 愈战愈勇：命中才算进入战斗，第一次命中给一档基础伤害加成，
+	 * 之后每次命中再叠一层（按永恒改装等级放大），封顶也按等级算；
+	 * 连续一段时间没有命中（脱战）就把层数清零。
+	 */
+	FERVOR;
 
 	public String displayName() {
 		return switch (this) {
@@ -58,6 +64,7 @@ public enum Chip {
 			case PURIFY_DOMAIN -> "净化领域";
 			case WIND_BLESSING -> "灵风之祝";
 			case THUNDER_VOICE -> "迅雷之音";
+			case FERVOR -> "愈战愈勇";
 		};
 	}
 

@@ -151,5 +151,11 @@
   "item.tacz_gun_level.chip.thunder_voice.8": "(only one active skill fires per press;",
   "item.tacz_gun_level.chip.thunder_voice.9": "the first chip slot wins)",
   "chip.tacz_gun_level.thunder_voice": "Thunderclap",
-  "msg.tacz_gun_level.thunder.ready": "Swift Dash is ready"
+  "msg.tacz_gun_level.thunder.ready": "Swift Dash is ready",
+  "item.tacz_gun_level.tactical_chip_fervor": "Tactical Chip: Fervor",
+  "item.tacz_gun_level.chip.fervor.1": "In combat: damage +%1$s",
+  "item.tacz_gun_level.chip.fervor.2": "each hit adds +%1$s per refit level",
+  "item.tacz_gun_level.chip.fervor.3": "cap %1$s x refit level",
+  "item.tacz_gun_level.chip.fervor.4": "resets %1$s s after leaving combat",
+  "chip.tacz_gun_level.fervor": "Fervor"
 }

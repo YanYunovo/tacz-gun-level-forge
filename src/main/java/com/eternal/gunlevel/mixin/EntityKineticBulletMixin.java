@@ -7,6 +7,7 @@ import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.ChipState;
 import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.Element;
+import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.item.GunAuroraData;
@@ -109,6 +110,11 @@ public abstract class EntityKineticBulletMixin {
 	private boolean gunlevel$thunder;
 	@Unique
 	private boolean gunlevel$thunderCounted;
+	/** 愈战愈勇：是否装了、这一发是否已经记过层（穿透多个目标只叠一层，和极光一样按发计） */
+	@Unique
+	private boolean gunlevel$fervor;
+	@Unique
+	private boolean gunlevel$fervorCounted;
 	/** 强击连发：是否装了 */
 	@Unique
 	private boolean gunlevel$barrage;
@@ -159,6 +165,7 @@ public abstract class EntityKineticBulletMixin {
 		this.gunlevel$barrage = chips.contains(Chip.BARRAGE);
 		this.gunlevel$momentum = chips.contains(Chip.MOMENTUM);
 		this.gunlevel$thunder = chips.contains(Chip.THUNDER_VOICE);
+		this.gunlevel$fervor = chips.contains(Chip.FERVOR);
 		this.gunlevel$chips = chips;
 
 		int level = LevelScaling.levelOfStack(gunStack);
@@ -289,6 +296,15 @@ public abstract class EntityKineticBulletMixin {
 			scaled *= 1.0F + (float) (GunLevelMod.CONFIG.chipMomentumDamagePerLevel
 					* this.gunlevel$level * this.gunlevel$momentumPower);
 		}
+		// 愈战愈勇：读射手此刻的层数。不用像势如破竹那样在生成时定格 —— 层数是在命中结算里才 +1 的，
+		// 所以这一发读到的是「截至上一发」的层数，同一发不会自己给自己叠；爆头那发照吃（它不挑部位）。
+		if (this.gunlevel$fervor && this.gunlevel$shooter != null) {
+			double fervor = FervorState.bonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime(), this.gunlevel$level);
+			if (fervor > 0) {
+				scaled *= 1.0F + (float) fervor;
+			}
+		}
 		// 净化领域：射手站在已点亮的苏生领域里时，这一发末尾再附加 0.02×等级×记录值 点伤害。
 		// 加在整条倍率链的最后，所以它不吃暴击、也不再被等级倍率乘一遍；强击连发那次额外攻击
 		// 走不到这里（上面已经 return），符合「额外攻击不重复吃加成」的既有口径。
@@ -335,6 +351,15 @@ public abstract class EntityKineticBulletMixin {
 			this.gunlevel$thunderCounted = true;
 			com.eternal.gunlevel.effect.ThunderVoiceState.onHit(this.gunlevel$shooter);
 		}
+		// 愈战愈勇：按发记一层（穿透到的后续目标不重复叠），刚进入战斗那一刻飘一行；
+		// 之后每叠一层都不飘字 —— 连射时每发都飘会把提示糊成一片（高能弹匣同样的理由）。
+		if (this.gunlevel$fervor && !this.gunlevel$fervorCounted
+				&& target.level() instanceof ServerLevel) {
+			this.gunlevel$fervorCounted = true;
+			if (FervorState.onHit(this.gunlevel$shooter, target.level().getGameTime())) {
+				ChipHints.show(this.gunlevel$shooter, Chip.FERVOR);
+			}
+		}
 		// 势如破竹：对近距目标造成伤害才开加成窗口（远狙不触发）。窗口没开着时才新开，
 		// 开着的时候只有击杀能把它拉回满值；穿透多个目标按「一次造成伤害」算，所以也限 outer。
 		if (outer && this.gunlevel$momentum && target.level() instanceof ServerLevel
@@ -372,7 +397,10 @@ public abstract class EntityKineticBulletMixin {
 				< (float) (GunLevelMod.CONFIG.chipBarrageChancePerLevel * this.gunlevel$level)
 				&& !target.isRemoved()) {
 			this.gunlevel$barraging = true;
+			// 额外攻击是一次新的攻击：极光命中和愈战愈勇的层数都该再记一次
+			// （这两个标志管的是「同一发穿透多个目标只记一次」）
 			this.gunlevel$auroraCounted = false;
+			this.gunlevel$fervorCounted = false;
 			try {
 				this.tacAttackEntity(multipart, damage / this.gunlevel$critApplied
 						* (float) GunLevelMod.CONFIG.chipBarrageDamageRatio, sources);

@@ -151,5 +151,11 @@
   "item.tacz_gun_level.chip.thunder_voice.8": "（有多个芯片主动技能同时满足使用条件只能触发一个，",
   "item.tacz_gun_level.chip.thunder_voice.9": "默认只触发第一格芯片的技能）",
   "chip.tacz_gun_level.thunder_voice": "迅雷之音",
-  "msg.tacz_gun_level.thunder.ready": "迅捷闪冲已就绪"
+  "msg.tacz_gun_level.thunder.ready": "迅捷闪冲已就绪",
+  "item.tacz_gun_level.tactical_chip_fervor": "战术芯片:愈战愈勇",
+  "item.tacz_gun_level.chip.fervor.1": "进入战斗后获得 %1$s 伤害加成",
+  "item.tacz_gun_level.chip.fervor.2": "每次攻击命中时获得 %1$s × 永恒改装等级的伤害加成",
+  "item.tacz_gun_level.chip.fervor.3": "上限 %1$s × 永恒改装等级",
+  "item.tacz_gun_level.chip.fervor.4": "脱战后 %1$s 秒重置",
+  "chip.tacz_gun_level.fervor": "愈战愈勇"
 }

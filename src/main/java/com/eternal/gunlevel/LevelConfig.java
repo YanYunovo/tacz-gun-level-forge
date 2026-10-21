@@ -249,6 +249,17 @@ public class LevelConfig {
 	public double chipThunderCooldownSeconds = 12.0;
 	/** 迅捷闪冲：每命中多少次减 1 秒冷却 */
 	public int chipThunderHitsPerSecond = 5;
+	/**
+	 * 愈战愈勇：进入战斗（第一次命中）就给的基础伤害加成。
+	 * 这一档不吃永恒改装等级，所以低等级枪的起手相对更划算。
+	 */
+	public double chipFervorBase = 0.03;
+	/** 愈战愈勇：此后每次命中再叠的比例，乘永恒改装等级 */
+	public double chipFervorPerHit = 0.001;
+	/** 愈战愈勇：叠加上限，乘永恒改装等级（LV5 = 75%） */
+	public double chipFervorCapPerLevel = 0.15;
+	/** 愈战愈勇：连续这么多秒没有命中就清零（脱战重置） */
+	public double chipFervorResetSeconds = 3.0;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

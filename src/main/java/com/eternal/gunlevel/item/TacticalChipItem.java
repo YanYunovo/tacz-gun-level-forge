@@ -126,7 +126,8 @@ public class TacticalChipItem extends Item {
 					String.valueOf(c.chipThunderHitsPerSecond)));
 			// 主动技能芯片共用的结尾：一次按键只有一颗芯片的技能会放出来
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.thunder_voice.8"));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.thunder_voice.9"));		} else if (chip == Chip.WIND_BLESSING) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.thunder_voice.9"));
+		} else if (chip == Chip.WIND_BLESSING) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_blessing.1"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_blessing.2"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_blessing.3"));
@@ -139,6 +140,15 @@ public class TacticalChipItem extends Item {
 			// 主动技能芯片共用的结尾：一次按键只有一颗芯片的技能会放出来
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_blessing.8"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_blessing.9"));
+		} else if (chip == Chip.FERVOR) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fervor.1",
+					percent(c.chipFervorBase)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fervor.2",
+					percent(c.chipFervorPerHit)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fervor.3",
+					percent(c.chipFervorCapPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fervor.4",
+					number(c.chipFervorResetSeconds)));
 		}
 	}
 
