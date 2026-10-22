@@ -78,6 +78,7 @@ public final class WindGuardState {
 			switch (chip) {
 				case WIND_BLESSING -> guardWind(player);
 				case THUNDER_VOICE -> ThunderVoiceState.dash(player);
+				case FLAME_ROAR -> FlameRoarState.roar(player);
 				default -> {
 				}
 			}

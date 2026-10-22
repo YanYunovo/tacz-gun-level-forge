@@ -260,6 +260,28 @@ public class LevelConfig {
 	public double chipFervorCapPerLevel = 0.15;
 	/** 愈战愈勇：连续这么多秒没有命中就清零（脱战重置） */
 	public double chipFervorResetSeconds = 3.0;
+	/** 烈焰咆哮：拿着这把枪时的移速惩罚（0.40 = −40%） */
+	public double chipRoarSpeedPenalty = 0.40;
+	/** 烈焰咆哮：切走武器后移速惩罚还要拖多久（防止换枪白嫖掉惩罚） */
+	public double chipRoarLingeringSeconds = 3.0;
+	/** 烈焰咆哮：爆头那发的伤害加成，乘永恒改装等级 */
+	public double chipRoarHeadDamagePerLevel = 0.04;
+	/** 烈焰咆哮：身体命中判成爆头的初始概率 */
+	public double chipRoarFakeHeadChance = 0.10;
+	/** 烈焰咆哮：暴击率每 1% 给上面那个概率加多少（0.005 = 0.5%） */
+	public double chipRoarFakeHeadPerCrit = 0.005;
+	/** 烈焰咆哮：概率加成最多累计到多少（0.40 = +40%） */
+	public double chipRoarFakeHeadBonusCap = 0.40;
+	/** 咆哮一击：这一匣只装几发（特殊弹的「一」） */
+	public int chipRoarMagAmmo = 1;
+	/** 咆哮一击：特殊弹的基础伤害倍率（4.0 = 原本的 400%） */
+	public double chipRoarDamageMultiplier = 4.0;
+	/** 咆哮一击：特殊弹的基础伤害加成有效秒数 */
+	public double chipRoarEmpowerSeconds = 5.0;
+	/** 咆哮一击：用掉之后要这把枪再击杀多少次才刷新 */
+	public int chipRoarKillsToRefresh = 3;
+	/** 咆哮一击：或者再命中头部多少次才刷新 */
+	public int chipRoarHeadshotsToRefresh = 5;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

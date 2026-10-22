@@ -13,7 +13,9 @@ import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.item.GunCoreData;
+import com.eternal.gunlevel.item.GunRoarData;
 import com.eternal.gunlevel.util.ChipHints;
+import com.eternal.gunlevel.util.TaczCompat;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.entity.EntityKineticBullet.MaybeMultipartEntity;
 import com.tacz.guns.resource.pojo.data.gun.BulletData;
@@ -115,6 +117,21 @@ public abstract class EntityKineticBulletMixin {
 	private boolean gunlevel$fervor;
 	@Unique
 	private boolean gunlevel$fervorCounted;
+	/** 烈焰咆哮：是否装了（爆头增伤与按枪的刷新计数都看它） */
+	@Unique
+	private boolean gunlevel$flameRoar;
+	/** 烈焰咆哮：这一发是不是咆哮匣里那颗特殊弹（生成那一刻按枪上的截止时刻定格） */
+	@Unique
+	private boolean gunlevel$roarRound;
+	/**
+	 * 烈焰咆哮：这一发最终算不算爆头 —— 真爆头，或被概率判成爆头。
+	 * 概率只掷一次并记在这里，命中结算那侧要用同一个结果计数，不能各掷各的。
+	 */
+	@Unique
+	private boolean gunlevel$headHit;
+	/** 发射那把枪的 id：按枪记的刷新计数要在命中那一刻再找到那把枪 */
+	@Unique
+	private ResourceLocation gunlevel$gunId;
 	/** 强击连发：是否装了 */
 	@Unique
 	private boolean gunlevel$barrage;
@@ -166,6 +183,17 @@ public abstract class EntityKineticBulletMixin {
 		this.gunlevel$momentum = chips.contains(Chip.MOMENTUM);
 		this.gunlevel$thunder = chips.contains(Chip.THUNDER_VOICE);
 		this.gunlevel$fervor = chips.contains(Chip.FERVOR);
+		this.gunlevel$flameRoar = chips.contains(Chip.FLAME_ROAR);
+		this.gunlevel$gunId = gunId;
+		// 咆哮匣里那颗特殊弹：按枪 NBT 上的截止时刻定格。这一发是不是它，出膛这一刻就定了，
+		// 之后就算 5 秒窗口过掉也不会再有一发吃到 400%（这一匣只有这一发）。
+		this.gunlevel$roarRound = this.gunlevel$flameRoar
+				&& GunRoarData.isEmpowered(gunStack, world.getGameTime());
+		if (this.gunlevel$roarRound && !world.isClientSide) {
+			// 特殊弹出膛这一刻就把咆哮匣抹掉：容量立刻回到正常值，
+			// 也保证「只有这一发吃 400%」—— 下一发生成时标记已经不在了
+			GunRoarData.endMag(gunStack);
+		}
 		this.gunlevel$chips = chips;
 
 		int level = LevelScaling.levelOfStack(gunStack);
@@ -213,6 +241,11 @@ public abstract class EntityKineticBulletMixin {
 		// 命中实体/命中方块/引信到点三个爆炸入口会自动跟着变。爆炸只吃等级倍率，不跟暴击。
 		if (this.explosionDamage > 0) {
 			this.explosionDamage *= (float) LevelScaling.damageScale(level);
+			// 重武器的爆炸段不走 tacAttackEntity，所以 400% 要单独乘到这个字段上，
+			// 否则火箭筒这类「基础伤害改 400%」就只体现在直击那一段
+			if (this.gunlevel$roarRound) {
+				this.explosionDamage *= (float) GunLevelMod.CONFIG.chipRoarDamageMultiplier;
+			}
 		}
 	}
 
@@ -269,6 +302,19 @@ public abstract class EntityKineticBulletMixin {
 	}
 
 	@Unique
+	private boolean gunlevel$rollFakeHead() {
+		if (this.gunlevel$headshot || this.gunlevel$shooter == null) {
+			return false;
+		}
+		var c = GunLevelMod.CONFIG;
+		// critChance 是小数（0.20 = 20%），配置里那档写的是「每 1% 暴击率加多少」，所以先乘 100；
+		// 封顶只封「靠暴击率挣来的那部分」，初始那 10% 是芯片自带的，不受影响。
+		double bonus = this.gunlevel$critChance * 100.0 * c.chipRoarFakeHeadPerCrit;
+		double chance = c.chipRoarFakeHeadChance + Math.min(bonus, c.chipRoarFakeHeadBonusCap);
+		return this.gunlevel$shooter.level().getRandom().nextFloat() < (float) chance;
+	}
+
+	@Unique
 	private float gunlevel$applyScale(float damage) {
 		if (this.gunlevel$level <= 0 || damage <= 0) {
 			return damage;
@@ -276,6 +322,11 @@ public abstract class EntityKineticBulletMixin {
 		// 强击连发的额外攻击：传进来的就是这一次命中的最终伤害，别再乘一遍等级/暴击/高能弹匣
 		if (this.gunlevel$barraging) {
 			return damage;
+		}
+		// 咆哮一击：这一发是特殊弹，面板基础伤害直接改成原本的 400%。
+		// 乘在高能弹匣那些点数之前 —— 那几点是固定加法，不该跟着翻四倍。
+		if (this.gunlevel$roarRound) {
+			damage *= (float) GunLevelMod.CONFIG.chipRoarDamageMultiplier;
 		}
 		// 高能弹匣的点数加在面板伤害那一档，所以要在等级倍率之前进账（会被 damageScale 再乘一遍）
 		float base = this.gunlevel$highMag
@@ -304,6 +355,19 @@ public abstract class EntityKineticBulletMixin {
 			if (fervor > 0) {
 				scaled *= 1.0F + (float) fervor;
 			}
+		}
+		// 烈焰咆哮：爆头那发再吃一档按等级的增伤。没打中头时先按概率判一次「算不算打中头」，
+		// 概率吃这一发的总暴击率（面板 + LV5 + 芯片常驻 + 激化 + 势如破竹），加成部分单独封顶。
+		// 这个转化只管这颗芯片自己的增伤与刷新计数 —— 势如破竹那档「非头部」仍看 TACZ 的真实爆头标记，
+		// 免得一颗芯片悄悄改了另一颗的判定口径。
+		if (this.gunlevel$flameRoar) {
+			this.gunlevel$headHit = this.gunlevel$headshot || gunlevel$rollFakeHead();
+			if (this.gunlevel$headHit) {
+				scaled *= 1.0F + (float) (GunLevelMod.CONFIG.chipRoarHeadDamagePerLevel
+						* this.gunlevel$level);
+			}
+		} else {
+			this.gunlevel$headHit = this.gunlevel$headshot;
 		}
 		// 净化领域：射手站在已点亮的苏生领域里时，这一发末尾再附加 0.02×等级×记录值 点伤害。
 		// 加在整条倍率链的最后，所以它不吃暴击、也不再被等级倍率乘一遍；强击连发那次额外攻击
@@ -369,6 +433,18 @@ public abstract class EntityKineticBulletMixin {
 			boolean killed = target instanceof LivingEntity victim && !victim.isAlive();
 			if (MomentumState.onHit(this.gunlevel$shooter, target.level().getGameTime(), killed)) {
 				ChipHints.show(this.gunlevel$shooter, Chip.MOMENTUM);
+			}
+		}
+		// 烈焰咆哮：击杀与爆头都记在**这把枪**上（用户口径「此武器击杀3次」，两把火枪各攒各的）。
+		// 按发计：强击连发的额外攻击是递归进来的（outer=false），不重复叠计数。
+		if (this.gunlevel$flameRoar && outer && this.gunlevel$shooter != null
+				&& target.level() instanceof ServerLevel) {
+			ItemStack gun = TaczCompat.findGunStack(this.gunlevel$shooter, this.gunlevel$gunId);
+			boolean killed = target instanceof LivingEntity victim && !victim.isAlive();
+			boolean refreshed = killed && GunRoarData.onKill(gun);
+			refreshed |= this.gunlevel$headHit && GunRoarData.onHeadshot(gun);
+			if (refreshed) {
+				ChipHints.show(this.gunlevel$shooter, Chip.FLAME_ROAR, ChipHints.SKILL_READY);
 			}
 		}
 		// 反应暴击是独立属性：初始跟随武器面板，概率封顶 20%、倍率封顶 150%

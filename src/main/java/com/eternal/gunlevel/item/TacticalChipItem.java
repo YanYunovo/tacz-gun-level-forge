@@ -149,6 +149,33 @@ public class TacticalChipItem extends Item {
 					percent(c.chipFervorCapPerLevel)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fervor.4",
 					number(c.chipFervorResetSeconds)));
+		} else if (chip == Chip.FLAME_ROAR) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.1",
+					percent(c.chipRoarSpeedPenalty)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.2",
+					number(c.chipRoarLingeringSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.3",
+					percent(c.chipRoarHeadDamagePerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.5",
+					percent(c.chipRoarFakeHeadChance)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.6",
+					percent(c.chipRoarFakeHeadPerCrit)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.7",
+					percent(c.chipRoarFakeHeadBonusCap)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.8"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.9"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.10"));
+			// 「原本的400%」是倍率乘 100，percent 正好干这件事
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.11",
+					number(c.chipRoarEmpowerSeconds), percent(c.chipRoarDamageMultiplier)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.12",
+					String.valueOf(c.chipRoarKillsToRefresh)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.13",
+					String.valueOf(c.chipRoarHeadshotsToRefresh)));
+			// 主动技能芯片共用的结尾：一次按键只有一颗芯片的技能会放出来
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.14"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.15"));
 		}
 	}
 

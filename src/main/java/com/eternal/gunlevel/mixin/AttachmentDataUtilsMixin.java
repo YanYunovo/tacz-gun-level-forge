@@ -5,6 +5,7 @@ import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.effect.ThunderVoiceState;
 import com.eternal.gunlevel.item.GunChipData;
+import com.eternal.gunlevel.item.GunRoarData;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -34,6 +35,11 @@ public abstract class AttachmentDataUtilsMixin {
 			CallbackInfoReturnable<Integer> cir) {
 		int capacity = cir.getReturnValue();
 		if (capacity <= 0) {
+			return;
+		}
+		// 咆哮匣直接顶成「这一匣只有一发」：它是技能造出来的特殊状态，不参与上面那些比例乘算
+		if (GunRoarData.isMagOn(gun)) {
+			cir.setReturnValue(Math.max(1, GunLevelMod.CONFIG.chipRoarMagAmmo));
 			return;
 		}
 		double scale = 1.0;

@@ -50,7 +50,14 @@ public enum Chip {
 	 * 之后每次命中再叠一层（按永恒改装等级放大），封顶也按等级算；
 	 * 连续一段时间没有命中（脱战）就把层数清零。
 	 */
-	FERVOR;
+	FERVOR,
+	/**
+	 * 烈焰咆哮：拿着就慢（切走还要再拖 3 秒），换一份按等级放大的爆头增伤，
+	 * 并且有小概率把身体命中判成爆头；装火核芯时多一个主动技能「咆哮一击」——
+	 * 把这一匣压成只剩一发特殊弹，五秒内打出它吃 400% 基础伤害，
+	 * 用完要靠这把枪再打满 3 次击杀或 5 次爆头才刷新。
+	 */
+	FLAME_ROAR;
 
 	public String displayName() {
 		return switch (this) {
@@ -65,6 +72,7 @@ public enum Chip {
 			case WIND_BLESSING -> "灵风之祝";
 			case THUNDER_VOICE -> "迅雷之音";
 			case FERVOR -> "愈战愈勇";
+			case FLAME_ROAR -> "烈焰咆哮";
 		};
 	}
 
@@ -73,7 +81,7 @@ public enum Chip {
 	 * 见 {@code WindGuardState#requestSkill}。
 	 */
 	public boolean hasActiveSkill() {
-		return this == WIND_BLESSING || this == THUNDER_VOICE;
+		return this == WIND_BLESSING || this == THUNDER_VOICE || this == FLAME_ROAR;
 	}
 
 	/** 主动技能冷却完毕的提示文案：每颗芯片各说各的，别拿风的句子去提示雷 */
@@ -81,6 +89,7 @@ public enum Chip {
 		return switch (this) {
 			case WIND_BLESSING -> "msg.tacz_gun_level.wind.ready";
 			case THUNDER_VOICE -> "msg.tacz_gun_level.thunder.ready";
+			case FLAME_ROAR -> "msg.tacz_gun_level.roar.ready";
 			default -> "msg.tacz_gun_level.skill.ready";
 		};
 	}

@@ -1,6 +1,8 @@
 package com.eternal.gunlevel.util;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -40,6 +42,36 @@ public final class TaczCompat {
 		if (TACZ_LOADED && !gun.isEmpty()) {
 			TaczBridge.refillMagazine(gun, amount);
 		}
+	}
+
+	/**
+	 * 在射手手上或背包里找到对应 gunId 的枪物品；找不到返回 EMPTY。
+	 * 只用 isGun/gunIdOf 两个口子，所以这里不出现任何 TACZ 类型，前置缺席也只是找不到。
+	 */
+	public static ItemStack findGunStack(LivingEntity shooter, ResourceLocation gunId) {
+		if (shooter == null || gunId == null) {
+			return ItemStack.EMPTY;
+		}
+		ItemStack main = shooter.getMainHandItem();
+		if (matches(main, gunId)) {
+			return main;
+		}
+		ItemStack off = shooter.getOffhandItem();
+		if (matches(off, gunId)) {
+			return off;
+		}
+		if (shooter instanceof Player player) {
+			for (ItemStack stack : player.getInventory().items) {
+				if (matches(stack, gunId)) {
+					return stack;
+				}
+			}
+		}
+		return ItemStack.EMPTY;
+	}
+
+	private static boolean matches(ItemStack stack, ResourceLocation gunId) {
+		return isGun(stack) && gunId.equals(gunIdOf(stack));
 	}
 
 	public static ResourceLocation gunIdOf(ItemStack stack) {

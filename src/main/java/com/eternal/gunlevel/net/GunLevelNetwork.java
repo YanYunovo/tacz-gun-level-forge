@@ -30,6 +30,8 @@ public final class GunLevelNetwork {
 	public static Consumer<ChipHint> onChipHint;
 	public static Consumer<Boolean> onWindGuard;
 	public static Consumer<Double> onThunderDash;
+	/** S2C：烈焰咆哮的移速惩罚要在客户端也挂一份（原版不同步玩家属性） */
+	public static Consumer<Boolean> onRoarSpeed;
 
 	/** S2C：经验条上方那行小字（哪颗芯片 + 哪种文案） */
 	public record ChipHint(int chipOrdinal, int kind) {
@@ -63,6 +65,10 @@ public final class GunLevelNetwork {
 
 	/** S2C：风的护佑的移速修正要在客户端也挂一份（原版不同步玩家属性） */
 	public record WindGuardSync(boolean on) {
+	}
+
+	/** S2C：烈焰咆哮的移速惩罚，两端各挂同一个 UUID 的修正 */
+	public record RoarSpeedSync(boolean on) {
 	}
 
 	private GunLevelNetwork() {
@@ -128,6 +134,17 @@ public final class GunLevelNetwork {
 					});
 					ctx.get().setPacketHandled(true);
 				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(5, RoarSpeedSync.class,
+				(msg, buf) -> buf.writeBoolean(msg.on()),
+				buf -> new RoarSpeedSync(buf.readBoolean()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onRoarSpeed != null) {
+							onRoarSpeed.accept(msg.on());
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendHint(ServerPlayer player, int chipOrdinal, int kind) {
@@ -148,5 +165,10 @@ public final class GunLevelNetwork {
 
 	public static void sendGuard(ServerPlayer player, boolean on) {
 		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new WindGuardSync(on));
+	}
+
+	/** 烈焰咆哮：把移速惩罚同步给客户端那份属性 */
+	public static void sendRoarSpeed(ServerPlayer player, boolean on) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new RoarSpeedSync(on));
 	}
 }
