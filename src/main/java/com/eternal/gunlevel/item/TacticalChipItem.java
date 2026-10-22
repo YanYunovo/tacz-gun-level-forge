@@ -176,6 +176,20 @@ public class TacticalChipItem extends Item {
 			// 主动技能芯片共用的结尾：一次按键只有一颗芯片的技能会放出来
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.14"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.15"));
+		} else if (chip == Chip.HUNTING_MOMENT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.1"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.2"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.3", percent(c.chipHuntRecordRatio)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.6", String.valueOf(c.chipHuntBonusStacks)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.7", percent(c.chipHuntBonusDamage)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.8", percent(c.chipHuntBonusCrit)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.9", percent(c.chipHuntBonusSpeed)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.10", String.valueOf(c.chipHuntBurstStacks)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.11", number(c.chipHuntBurstSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.12", percent(c.chipHuntBurstFireRate)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.13"));
 		}
 	}
 

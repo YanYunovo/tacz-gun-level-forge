@@ -175,5 +175,20 @@
   "item.tacz_gun_level.chip.flame_roar.14": "(only one active skill fires per press;",
   "item.tacz_gun_level.chip.flame_roar.15": "the first chip slot wins)",
   "chip.tacz_gun_level.flame_roar": "Flame Roar",
-  "msg.tacz_gun_level.roar.ready": "Roaring Strike is ready"
+  "msg.tacz_gun_level.roar.ready": "Roaring Strike is ready",
+  "item.tacz_gun_level.tactical_chip_hunting_moment": "Tactical Chip: Hunting Moment",
+  "item.tacz_gun_level.chip.hunting_moment.1": "Hits mark the target",
+  "item.tacz_gun_level.chip.hunting_moment.2": "Hitting the marked target",
+  "item.tacz_gun_level.chip.hunting_moment.3": "logs the hits and %1$s of the damage",
+  "item.tacz_gun_level.chip.hunting_moment.4": "While marked, once its health drops below",
+  "item.tacz_gun_level.chip.hunting_moment.5": "the logged damage, that damage is dealt",
+  "item.tacz_gun_level.chip.hunting_moment.6": "After %1$s hits",
+  "item.tacz_gun_level.chip.hunting_moment.7": "+%1$s damage",
+  "item.tacz_gun_level.chip.hunting_moment.8": "+%1$s crit chance",
+  "item.tacz_gun_level.chip.hunting_moment.9": "+%1$s move speed",
+  "item.tacz_gun_level.chip.hunting_moment.10": "At %1$s hits",
+  "item.tacz_gun_level.chip.hunting_moment.11": "%1$s s of free ammo",
+  "item.tacz_gun_level.chip.hunting_moment.12": "fire rate +%1$s",
+  "item.tacz_gun_level.chip.hunting_moment.13": "then it takes the logged damage; reset",
+  "chip.tacz_gun_level.hunting_moment": "Hunting Moment"
 }

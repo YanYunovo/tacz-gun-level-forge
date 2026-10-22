@@ -282,6 +282,26 @@ public class LevelConfig {
 	public int chipRoarKillsToRefresh = 3;
 	/** 咆哮一击：或者再命中头部多少次才刷新 */
 	public int chipRoarHeadshotsToRefresh = 5;
+	/** 狩猎时刻：每次命中标记目标，把该次伤害的这个比例记进账 */
+	public double chipHuntRecordRatio = 0.10;
+	/** 狩猎时刻：切枪提前收尾时，记录伤害按这个比例结算（正常收尾是 1） */
+	public double chipHuntSwapRatio = 0.50;
+	/** 狩猎时刻：连续这么多秒没有命中被标记目标就清掉标记（脱战） */
+	public double chipHuntTimeoutSeconds = 5.0;
+	/** 狩猎时刻：命中次数到这一档，给伤害/暴击/移速三档加成 */
+	public int chipHuntBonusStacks = 15;
+	/** 狩猎时刻：三档加成的伤害提升 */
+	public double chipHuntBonusDamage = 0.10;
+	/** 狩猎时刻：三档加成的暴击率提升（加在武器面板那一次掷骰上） */
+	public double chipHuntBonusCrit = 0.10;
+	/** 狩猎时刻：三档加成的移速提升（两端各挂一次） */
+	public double chipHuntBonusSpeed = 0.10;
+	/** 狩猎时刻：命中次数到这一档，开爆发窗口 */
+	public int chipHuntBurstStacks = 30;
+	/** 狩猎时刻：爆发窗口持续秒数（期间不消耗弹药、射速提升，结束时结算记录伤害） */
+	public double chipHuntBurstSeconds = 3.0;
+	/** 狩猎时刻：爆发窗口的射速提升（换算成射击间隔 = 除以 1+此值） */
+	public double chipHuntBurstFireRate = 0.16;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

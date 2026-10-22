@@ -12,6 +12,7 @@ import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.CrystallizationEffect;
 import com.eternal.gunlevel.effect.Element;
 import com.eternal.gunlevel.effect.FlameRoarState;
+import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
@@ -297,6 +298,7 @@ public class GunLevelMod {
 		WindGuardState.tick(event.getServer());
 		ThunderVoiceState.tick(event.getServer());
 		FlameRoarState.tick(event.getServer());
+		HuntState.tick(event.getServer());
 		FervorState.tick(event.getServer());
 	}
 
@@ -309,6 +311,7 @@ public class GunLevelMod {
 		WindGuardState.clear();
 		ThunderVoiceState.clear();
 		FlameRoarState.clear();
+		HuntState.clear();
 		FervorState.clear();
 		RockConstructEntity.clear();
 	}

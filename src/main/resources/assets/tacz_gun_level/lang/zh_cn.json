@@ -175,5 +175,20 @@
   "item.tacz_gun_level.chip.flame_roar.14": "（有多个芯片主动技能同时满足使用条件只能触发一个，",
   "item.tacz_gun_level.chip.flame_roar.15": "默认只触发第一格芯片的技能）",
   "chip.tacz_gun_level.flame_roar": "烈焰咆哮",
-  "msg.tacz_gun_level.roar.ready": "咆哮一击已就绪"
+  "msg.tacz_gun_level.roar.ready": "咆哮一击已就绪",
+  "item.tacz_gun_level.tactical_chip_hunting_moment": "战术芯片:狩猎时刻",
+  "item.tacz_gun_level.chip.hunting_moment.1": "装备后武器命中会标记敌人",
+  "item.tacz_gun_level.chip.hunting_moment.2": "命中被标记的敌人时",
+  "item.tacz_gun_level.chip.hunting_moment.3": "会记录命中次数和命中伤害的 %1$s",
+  "item.tacz_gun_level.chip.hunting_moment.4": "标记存在期间，若目标生命值低于记录的伤害",
+  "item.tacz_gun_level.chip.hunting_moment.5": "则立即结算此伤害",
+  "item.tacz_gun_level.chip.hunting_moment.6": "当命中次数到达 %1$s 次后",
+  "item.tacz_gun_level.chip.hunting_moment.7": "获得 %1$s 伤害加成",
+  "item.tacz_gun_level.chip.hunting_moment.8": "%1$s 暴击率",
+  "item.tacz_gun_level.chip.hunting_moment.9": "%1$s 移速加成",
+  "item.tacz_gun_level.chip.hunting_moment.10": "命中次数到达 %1$s 次时",
+  "item.tacz_gun_level.chip.hunting_moment.11": "获得 %1$s 秒的不消耗弹药",
+  "item.tacz_gun_level.chip.hunting_moment.12": "射速提升 %1$s",
+  "item.tacz_gun_level.chip.hunting_moment.13": "结束后，对标记目标造成记录的伤害并清空记录值",
+  "chip.tacz_gun_level.hunting_moment": "狩猎时刻"
 }

@@ -8,6 +8,7 @@ import com.eternal.gunlevel.effect.ChipState;
 import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.Element;
 import com.eternal.gunlevel.effect.FervorState;
+import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.item.GunAuroraData;
@@ -24,6 +25,7 @@ import com.tacz.guns.util.TacHitResult;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -118,6 +120,9 @@ public abstract class EntityKineticBulletMixin {
 	@Unique
 	private boolean gunlevel$fervorCounted;
 	/** 烈焰咆哮：是否装了（爆头增伤与按枪的刷新计数都看它） */
+	/** 狩猎时刻：是否装了（标记、记录、两档阈值都按射手记，见 HuntState） */
+	@Unique
+	private boolean gunlevel$hunt;
 	@Unique
 	private boolean gunlevel$flameRoar;
 	/** 烈焰咆哮：这一发是不是咆哮匣里那颗特殊弹（生成那一刻按枪上的截止时刻定格） */
@@ -184,6 +189,7 @@ public abstract class EntityKineticBulletMixin {
 		this.gunlevel$thunder = chips.contains(Chip.THUNDER_VOICE);
 		this.gunlevel$fervor = chips.contains(Chip.FERVOR);
 		this.gunlevel$flameRoar = chips.contains(Chip.FLAME_ROAR);
+		this.gunlevel$hunt = chips.contains(Chip.HUNTING_MOMENT);
 		this.gunlevel$gunId = gunId;
 		// 咆哮匣里那颗特殊弹：按枪 NBT 上的截止时刻定格。这一发是不是它，出膛这一刻就定了，
 		// 之后就算 5 秒窗口过掉也不会再有一发吃到 400%（这一匣只有这一发）。
@@ -225,6 +231,10 @@ public abstract class EntityKineticBulletMixin {
 			double power = MomentumState.strength(shooter, world.getGameTime());
 			this.gunlevel$momentumPower = (float) power;
 			chance += GunLevelMod.CONFIG.chipMomentumCritChancePerLevel * level * power;
+		}
+		// 狩猎时刻：攒够 15 次命中的那档暴击率加成，加在同一次掷骰上
+		if (this.gunlevel$hunt) {
+			chance += HuntState.critBonus(shooter, world.getGameTime());
 		}
 		this.gunlevel$critChance = (float) chance;
 		// 只掷骰，不开激化窗口：空开枪不该触发连环暴击，生效挪到命中结算里
@@ -356,6 +366,14 @@ public abstract class EntityKineticBulletMixin {
 				scaled *= 1.0F + (float) fervor;
 			}
 		}
+		// 狩猎时刻：标记期间攒够 15 次命中就给一档通用伤害加成（跟着标记走，切枪/脱战就没了）
+		if (this.gunlevel$hunt && this.gunlevel$shooter != null) {
+			double bonus = HuntState.damageBonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime());
+			if (bonus > 0) {
+				scaled *= 1.0F + (float) bonus;
+			}
+		}
 		// 烈焰咆哮：爆头那发再吃一档按等级的增伤。没打中头时先按概率判一次「算不算打中头」，
 		// 概率吃这一发的总暴击率（面板 + LV5 + 芯片常驻 + 激化 + 势如破竹），加成部分单独封顶。
 		// 这个转化只管这颗芯片自己的增伤与刷新计数 —— 势如破竹那档「非头部」仍看 TACZ 的真实爆头标记，
@@ -434,6 +452,12 @@ public abstract class EntityKineticBulletMixin {
 			if (MomentumState.onHit(this.gunlevel$shooter, target.level().getGameTime(), killed)) {
 				ChipHints.show(this.gunlevel$shooter, Chip.MOMENTUM);
 			}
+		}
+		// 狩猎时刻：命中就是这一轮的输入（第一枪挂标记，之后每次打中被标记的目标记账并查收割）。
+		// 强击连发的额外攻击也算一次命中 —— 它确实又打了一遍伤害，记进账是应该的。
+		if (this.gunlevel$hunt && this.gunlevel$shooter instanceof ServerPlayer hunter
+				&& target instanceof LivingEntity victim && target.level() instanceof ServerLevel) {
+			HuntState.onHit(hunter, victim, damage);
 		}
 		// 烈焰咆哮：击杀与爆头都记在**这把枪**上（用户口径「此武器击杀3次」，两把火枪各攒各的）。
 		// 按发计：强击连发的额外攻击是递归进来的（outer=false），不重复叠计数。

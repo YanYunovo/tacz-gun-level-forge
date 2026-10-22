@@ -2,6 +2,7 @@ package com.eternal.gunlevel.client;
 
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.effect.FlameRoarState;
+import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.WindGuardState;
 import com.eternal.gunlevel.menu.ChipMenu;
 import com.eternal.gunlevel.menu.ChipSelectMenu;
@@ -48,6 +49,8 @@ public final class GunLevelClient {
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onThunderDash = blocks -> ThunderDash.dash(Minecraft.getInstance().player, blocks);
 		GunLevelNetwork.onRoarSpeed = on -> FlameRoarState.applySpeedClient(
+				Minecraft.getInstance().player, on);
+		GunLevelNetwork.onHuntSpeed = on -> HuntState.applySpeedClient(
 				Minecraft.getInstance().player, on);
 	}
 

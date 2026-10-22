@@ -24,6 +24,11 @@ public abstract class GunDataMixin {
 		scale *= LevelScaling.quickenIntervalScale(shooter) * LevelScaling.auroraIntervalScale(shooter, level);
 		// 迅雷之音的射速加成与等级无关，装了就吃
 		scale *= com.eternal.gunlevel.effect.ThunderVoiceState.intervalScale(shooter);
+		// 狩猎时刻：只有爆发窗口那 3 秒吃这一档（标记没了或次数没到 30 就是 1.0）
+		if (shooter != null) {
+			scale *= com.eternal.gunlevel.effect.HuntState.intervalScale(shooter,
+					shooter.level().getGameTime());
+		}
 		if (interval <= 0 || scale == 1.0) {
 			return;
 		}

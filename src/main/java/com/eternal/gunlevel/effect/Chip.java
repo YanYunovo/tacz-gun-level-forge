@@ -57,7 +57,14 @@ public enum Chip {
 	 * 把这一匣压成只剩一发特殊弹，五秒内打出它吃 400% 基础伤害，
 	 * 用完要靠这把枪再打满 3 次击杀或 5 次爆头才刷新。
 	 */
-	FLAME_ROAR;
+	FLAME_ROAR,
+	/**
+	 * 狩猎时刻：命中给目标挂一个标记（不会转移给别人），之后每次打中被标记的目标都攒一层
+	 * 记录值（该次伤害的 10%）与命中次数；目标血量跌到记录值以下就立刻按固定伤害收割。
+	 * 次数到 15 给一档伤害/暴击/移速加成（跟着标记走），到 30 开 3 秒「不耗弹 + 射速」爆发，
+	 * 爆发结束结算记录伤害并收尾。切枪提前收尾只按 50% 结算，脱战 5 秒直接清标记。
+	 */
+	HUNTING_MOMENT;
 
 	public String displayName() {
 		return switch (this) {
@@ -73,6 +80,7 @@ public enum Chip {
 			case THUNDER_VOICE -> "迅雷之音";
 			case FERVOR -> "愈战愈勇";
 			case FLAME_ROAR -> "烈焰咆哮";
+			case HUNTING_MOMENT -> "狩猎时刻";
 		};
 	}
 

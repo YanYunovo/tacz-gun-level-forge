@@ -12,7 +12,8 @@
     "GunReloadTimeMixin",
     "LivingEntityReloadMixin",
     "LivingEntityShootMixin",
-    "ModernKineticGunItemMixin"
+    "ModernKineticGunItemMixin",
+    "AmmoCheckHuntMixin"
   ],
   "client": [
     "ClientGunTooltipMixin",
