@@ -312,6 +312,26 @@ public class LevelConfig {
 	public double chipBlueHeadDamage = 0.10;
 	/** 蓝芯片·暴击伤害改造：暴击伤害倍率的加值，定值不乘等级 */
 	public double chipBlueCritDamage = 0.10;
+	/** 紫芯片·抵近射击：算「近距」的距离（格），口径与势如破竹一致：命中时射手到目标的距离 */
+	public double chipPurpleCloseRange = 5.0;
+	/** 紫芯片·抵近射击：近距那一发的伤害加成 */
+	public double chipPurpleCloseDamage = 0.15;
+	/** 紫芯片·抵近射击：近距且真暴击时，暴击伤害倍率的加值 */
+	public double chipPurpleCloseCritDamage = 0.10;
+	/** 紫芯片·凝神打击：射手血量比例高于此值才吃加成 */
+	public double chipPurpleFocusHealthRatio = 0.75;
+	/** 紫芯片·凝神打击：加成幅度 */
+	public double chipPurpleFocusDamage = 0.20;
+	/** 紫芯片·节奏射击：每发命中叠一层 */
+	public double chipPurpleRhythmPerHit = 0.015;
+	/** 紫芯片·节奏射击：层数封顶（14 发打满） */
+	public double chipPurpleRhythmCap = 0.20;
+	/** 紫芯片·节奏射击：连续多少秒没有命中就整条清零（打在方块上的落空那发立刻清零，不等这里） */
+	public double chipPurpleRhythmResetSeconds = 3.0;
+	/** 紫芯片·无坚不摧：目标血量比例高于此值才吃暴击率加成 */
+	public double chipPurpleUnstoppableHealthRatio = 0.60;
+	/** 紫芯片·无坚不摧：对该目标的暴击率加值（同一枚骰子只抬高及格线，不补掷） */
+	public double chipPurpleUnstoppableCrit = 0.20;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

@@ -3,7 +3,6 @@ package com.eternal.gunlevel.item;
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.LevelConfig;
 import com.eternal.gunlevel.effect.Chip;
-import com.eternal.gunlevel.effect.ChipTier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -23,8 +22,12 @@ public class TacticalChipItem extends Item {
 
 	public TacticalChipItem(Chip chip) {
 		super(new Item.Properties().stacksTo(16)
-				// 金芯片是稀有件（tooltip 走金色），蓝芯片是常见件
-				.rarity(chip.tier() == ChipTier.GOLD ? Rarity.RARE : Rarity.COMMON));
+				// 档次是用户定的：蓝=常见、紫=少见、金=稀有（tooltip 名字那行的颜色跟着走）
+				.rarity(switch (chip.tier()) {
+					case GOLD -> Rarity.RARE;
+					case PURPLE -> Rarity.UNCOMMON;
+					case BLUE -> Rarity.COMMON;
+				}));
 		this.chip = chip;
 	}
 
@@ -203,6 +206,22 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.head_damage_mod", percent(c.chipBlueHeadDamage)));
 		} else if (chip == Chip.CRIT_DAMAGE_MOD) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.crit_damage_mod", percent(c.chipBlueCritDamage)));
+		} else if (chip == Chip.CLOSE_QUARTERS) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.close_quarters.1",
+					number(c.chipPurpleCloseRange), percent(c.chipPurpleCloseDamage)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.close_quarters.2",
+					percent(c.chipPurpleCloseCritDamage)));
+		} else if (chip == Chip.FOCUSED_STRIKE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.focused_strike",
+					percent(c.chipPurpleFocusHealthRatio), percent(c.chipPurpleFocusDamage)));
+		} else if (chip == Chip.RHYTHM_SHOT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rhythm_shot.1",
+					percent(c.chipPurpleRhythmPerHit)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rhythm_shot.2",
+					percent(c.chipPurpleRhythmCap)));
+		} else if (chip == Chip.UNSTOPPABLE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.unstoppable",
+					percent(c.chipPurpleUnstoppableHealthRatio), percent(c.chipPurpleUnstoppableCrit)));
 		}
 	}
 

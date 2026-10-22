@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    },
+    {
+      "item": "tacz_gun_level:broken_purple_chip"
+    }
+  ],
+  "result": {
+    "item": "tacz_gun_level:purple_chip_pack",
+    "count": 1
+  }
+}

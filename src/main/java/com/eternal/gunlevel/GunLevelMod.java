@@ -18,6 +18,7 @@ import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.effect.QuickeningEffect;
+import com.eternal.gunlevel.effect.RhythmState;
 import com.eternal.gunlevel.effect.ThunderVoiceState;
 import com.eternal.gunlevel.effect.WindGuardState;
 import com.eternal.gunlevel.entity.RockConstructEntity;
@@ -324,6 +325,7 @@ public class GunLevelMod {
 		FlameRoarState.tick(event.getServer());
 		HuntState.tick(event.getServer());
 		FervorState.tick(event.getServer());
+		RhythmState.tick(event.getServer());
 	}
 
 	private void onServerStopping(ServerStoppingEvent event) {
@@ -337,6 +339,7 @@ public class GunLevelMod {
 		FlameRoarState.clear();
 		HuntState.clear();
 		FervorState.clear();
+		RhythmState.clear();
 		RockConstructEntity.clear();
 	}
 

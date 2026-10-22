@@ -11,6 +11,7 @@ import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
+import com.eternal.gunlevel.effect.RhythmState;
 import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.item.GunCoreData;
@@ -33,6 +34,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Mixin;
@@ -155,6 +157,18 @@ public abstract class EntityKineticBulletMixin {
 	/** 势如破竹：这发是不是打头。TACZ 在 onHitEntity 里就把爆头倍率乘进伤害了，只能在那个时刻抓标记 */
 	@Unique
 	private boolean gunlevel$headshot;
+	/** 节奏射击：是否装了 */
+	@Unique
+	private boolean gunlevel$rhythm;
+	/** 节奏射击：这一发是否已经记过层（穿透多个目标只叠一层），同时兼作「这发没落空」的标记 */
+	@Unique
+	private boolean gunlevel$rhythmCounted;
+	/** 出膛那一刻掷暴击用的骰值：无坚不摧要在命中时按目标血量抬高及格线，不能到那时再补掷一次 */
+	@Unique
+	private float gunlevel$critRoll;
+	/** 这一次命中的目标（onHitEntity 开头抓），抵近射击的距离与两边的血量口径都从它算 */
+	@Unique
+	private Entity gunlevel$hitTarget;
 	/** 正在结算强击连发的额外攻击：这一层不再掷骰、伤害也不再重复缩放（传进去的已经是最终值） */
 	@Unique
 	private boolean gunlevel$barraging;
@@ -190,6 +204,7 @@ public abstract class EntityKineticBulletMixin {
 		this.gunlevel$fervor = chips.contains(Chip.FERVOR);
 		this.gunlevel$flameRoar = chips.contains(Chip.FLAME_ROAR);
 		this.gunlevel$hunt = chips.contains(Chip.HUNTING_MOMENT);
+		this.gunlevel$rhythm = chips.contains(Chip.RHYTHM_SHOT);
 		this.gunlevel$gunId = gunId;
 		// 咆哮匣里那颗特殊弹：按枪 NBT 上的截止时刻定格。这一发是不是它，出膛这一刻就定了，
 		// 之后就算 5 秒窗口过掉也不会再有一发吃到 400%（这一匣只有这一发）。
@@ -241,10 +256,11 @@ public abstract class EntityKineticBulletMixin {
 			chance += HuntState.critBonus(shooter, world.getGameTime());
 		}
 		this.gunlevel$critChance = (float) chance;
-		// 只掷骰，不开激化窗口：空开枪不该触发连环暴击，生效挪到命中结算里
-		if (world.getRandom().nextFloat() < this.gunlevel$critChance) {
-			this.gunlevel$crit = true;
-		}
+		// 只掷骰，不开激化窗口：空开枪不该触发连环暴击，生效挪到命中结算里。
+		// 骰值也留着：紫芯片·无坚不摧要在命中那一刻按目标血量把及格线抬高，
+		// 拿同一枚骰子比两次，等于「对该目标暴击率 +20%」，而不是补掷一次概率。
+		this.gunlevel$critRoll = world.getRandom().nextFloat();
+		this.gunlevel$crit = this.gunlevel$critRoll < this.gunlevel$critChance;
 		// 破甲强攻：每发子弹掷一次概率（每级放大），触发那发在命中结算里同时吃穿甲与增伤
 		if (this.gunlevel$armorBreak && world.getRandom().nextFloat()
 				< (float) (GunLevelMod.CONFIG.chipArmorPierceChancePerLevel * level)) {
@@ -273,6 +289,22 @@ public abstract class EntityKineticBulletMixin {
 	private void gunlevel$catchHeadshot(TacHitResult hit, Vec3 hitPos, Vec3 cameraPos,
 			CallbackInfo ci) {
 		this.gunlevel$headshot = hit.isHeadshot();
+		// 目标也要在这里抓：伤害缩放挂在 tacAttackEntity 的参数上，那时已经拿不到命中上下文，
+		// 而抵近射击（距离）与无坚不摧（目标血量）都要在缩放那一刻读数
+		this.gunlevel$hitTarget = hit.getEntity();
+	}
+
+	/**
+	 * 节奏射击的「落空」：这一发打在方块上、并且从没记过层，说明它一发都没打中人 → 整条清零。
+	 * 子弹飞出寿命（朝天开一枪）不经过这里，那一发由 3 秒脱战兜底，所以层数最迟 3 秒后也会掉。
+	 */
+	@Inject(method = "onHitBlock", at = @At("HEAD"), remap = false)
+	private void gunlevel$onBlockHitMiss(BlockHitResult hit, Vec3 pos, Vec3 cameraPos,
+			CallbackInfo ci) {
+		if (this.gunlevel$rhythm && !this.gunlevel$rhythmCounted && this.gunlevel$shooter != null
+				&& !this.gunlevel$shooter.level().isClientSide) {
+			RhythmState.reset(this.gunlevel$shooter);
+		}
 	}
 
 	/**
@@ -328,6 +360,33 @@ public abstract class EntityKineticBulletMixin {
 		return this.gunlevel$shooter.level().getRandom().nextFloat() < (float) chance;
 	}
 
+	/** 抵近射击的距离口径：命中这一刻射手到目标的直线距离，和势如破竹用同一个判据 */
+	@Unique
+	private boolean gunlevel$withinCloseRange() {
+		double range = GunLevelMod.CONFIG.chipPurpleCloseRange;
+		return this.gunlevel$shooter != null && this.gunlevel$hitTarget != null
+				&& this.gunlevel$hitTarget.distanceToSqr(this.gunlevel$shooter) <= range * range;
+	}
+
+	/** 无坚不摧的血量口径：目标当前生命 / 上限。打的不是活物就当 0，不触发 */
+	@Unique
+	private double gunlevel$targetHealthRatio() {
+		if (!(this.gunlevel$hitTarget instanceof LivingEntity victim)) {
+			return 0.0;
+		}
+		return victim.getHealth() / (float) Math.max(1.0F, victim.getMaxHealth());
+	}
+
+	/** 凝神打击的血量口径：射手自己当前生命 / 上限 */
+	@Unique
+	private double gunlevel$shooterHealthRatio() {
+		if (this.gunlevel$shooter == null) {
+			return 0.0;
+		}
+		return this.gunlevel$shooter.getHealth()
+				/ (float) Math.max(1.0F, this.gunlevel$shooter.getMaxHealth());
+	}
+
 	@Unique
 	private float gunlevel$applyScale(float damage) {
 		if (this.gunlevel$level <= 0 || damage <= 0) {
@@ -347,13 +406,27 @@ public abstract class EntityKineticBulletMixin {
 				? damage + (float) LevelScaling.highMagBasePoints(this.gunlevel$level)
 				: damage;
 		float scaled = base * (float) LevelScaling.damageScale(this.gunlevel$level);
+		// 紫芯片·抵近射击：命中这一刻射手到目标的距离在 5 格内才算近距（和势如破竹同一口径），
+		// 增伤与「暴击伤害增加」两条都受这个条件管
+		boolean close = this.gunlevel$chips.contains(Chip.CLOSE_QUARTERS)
+				&& gunlevel$withinCloseRange();
+		// 紫芯片·无坚不摧：目标血量还在 60% 以上时，这一发的暴击率多一档。
+		// 拿出膛那枚骰值去比更高的及格线，不补掷第二次，所以原本就暴击的不会被弄没。
+		if (!this.gunlevel$crit && this.gunlevel$chips.contains(Chip.UNSTOPPABLE)
+				&& gunlevel$targetHealthRatio() > GunLevelMod.CONFIG.chipPurpleUnstoppableHealthRatio
+				&& this.gunlevel$critRoll
+						< this.gunlevel$critChance + GunLevelMod.CONFIG.chipPurpleUnstoppableCrit) {
+			this.gunlevel$crit = true;
+		}
 		this.gunlevel$critApplied = 1.0F;
 		if (this.gunlevel$crit) {
 			this.gunlevel$critApplied = (float) (LevelScaling.critMultiplier(
 					this.gunlevel$level, this.gunlevel$empowered)
 					// 蓝芯片·暴击伤害改造：定值加在倍率上（1.5 起的话就是 1.6）
 					+ (this.gunlevel$chips.contains(Chip.CRIT_DAMAGE_MOD)
-							? GunLevelMod.CONFIG.chipBlueCritDamage : 0.0));
+							? GunLevelMod.CONFIG.chipBlueCritDamage : 0.0)
+					// 紫芯片·抵近射击：只有近距那一发吃
+					+ (close ? GunLevelMod.CONFIG.chipPurpleCloseCritDamage : 0.0));
 			scaled *= this.gunlevel$critApplied;
 		}
 		if (this.gunlevel$highMag) {
@@ -376,6 +449,20 @@ public abstract class EntityKineticBulletMixin {
 		// 蓝芯片·伤害改造：定值一档，和等级倍率同区连乘
 		if (this.gunlevel$chips.contains(Chip.DAMAGE_MOD)) {
 			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueDamage;
+		}
+		// 紫芯片·抵近射击的增伤与凝神打击的满血增伤：同样是定值一档连乘
+		if (close) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleCloseDamage;
+		}
+		if (this.gunlevel$chips.contains(Chip.FOCUSED_STRIKE)
+				&& gunlevel$shooterHealthRatio() > GunLevelMod.CONFIG.chipPurpleFocusHealthRatio) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleFocusDamage;
+		}
+		// 紫芯片·节奏射击：读射手此刻的层数（叠层在命中结算里，落空或脱战 3 秒整条清零）。
+		// 强击连发的额外攻击在上面已经 return，不会再吃一遍这档加成。
+		if (this.gunlevel$rhythm && this.gunlevel$shooter != null) {
+			scaled *= 1.0F + (float) RhythmState.bonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime());
 		}
 		// 狩猎时刻：标记期间攒够 15 次命中就给一档通用伤害加成（跟着标记走，切枪/脱战就没了）
 		if (this.gunlevel$hunt && this.gunlevel$shooter != null) {
@@ -456,6 +543,13 @@ public abstract class EntityKineticBulletMixin {
 			if (FervorState.onHit(this.gunlevel$shooter, target.level().getGameTime())) {
 				ChipHints.show(this.gunlevel$shooter, Chip.FERVOR);
 			}
+		}
+		// 节奏射击：按发计层（穿透到的后续目标不重复叠，和愈战愈勇同口径）。
+		// 不飘字 —— 连射时每发都飘会把提示糊成一片（高能弹匣同样的理由）。
+		if (this.gunlevel$rhythm && !this.gunlevel$rhythmCounted
+				&& target.level() instanceof ServerLevel) {
+			this.gunlevel$rhythmCounted = true;
+			RhythmState.onHit(this.gunlevel$shooter, target.level().getGameTime());
 		}
 		// 势如破竹：对近距目标造成伤害才开加成窗口（远狙不触发）。窗口没开着时才新开，
 		// 开着的时候只有击杀能把它拉回满值；穿透多个目标按「一次造成伤害」算，所以也限 outer。

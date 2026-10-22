@@ -74,7 +74,25 @@ public enum Chip {
 	/** 头部伤害改造：固定提升 10% 头部伤害加成 */
 	HEAD_DAMAGE_MOD(ChipTier.BLUE),
 	/** 暴击伤害改造：固定提升 10% 暴击伤害 */
-	CRIT_DAMAGE_MOD(ChipTier.BLUE);
+	CRIT_DAMAGE_MOD(ChipTier.BLUE),
+	/**
+	 * 抵近射击：命中这一刻射手与目标的距离在 5 格内，这一发伤害 +15%，
+	 * 并且（若真暴击）暴击伤害倍率再 +10%。口径与势如破竹的距离判定一致。
+	 */
+	CLOSE_QUARTERS(ChipTier.PURPLE),
+	/** 凝神打击：射手自己生命值高于 75% 上限时伤害 +20%（残血就没有） */
+	FOCUSED_STRIKE(ChipTier.PURPLE),
+	/**
+	 * 节奏射击：每发命中叠 1.5% 伤害加成，上限 20%（14 发打满）。
+	 * 连续 3 秒没有命中、或者有一发打在方块上落空，整条清零 —— 是「保持节奏」的收益。
+	 */
+	RHYTHM_SHOT(ChipTier.PURPLE),
+	/**
+	 * 无坚不摧：目标生命值在 60% 以上时，这一发的暴击率 +20%。
+	 * 骰子在出膛那一刻就掷好了（存的是骰值），命中时只对高血量目标把及格线抬高，
+	 * 不补掷第二次 —— 免得一次命中吃两次概率。
+	 */
+	UNSTOPPABLE(ChipTier.PURPLE);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -107,6 +125,10 @@ public enum Chip {
 			case DAMAGE_MOD -> "伤害改造";
 			case HEAD_DAMAGE_MOD -> "头部伤害改造";
 			case CRIT_DAMAGE_MOD -> "暴击伤害改造";
+			case CLOSE_QUARTERS -> "抵近射击";
+			case FOCUSED_STRIKE -> "凝神打击";
+			case RHYTHM_SHOT -> "节奏射击";
+			case UNSTOPPABLE -> "无坚不摧";
 		};
 	}
 
