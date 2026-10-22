@@ -6,6 +6,7 @@ import com.eternal.gunlevel.menu.ChipSelectMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,84 +17,75 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 芯片自选包的界面：上半区把本品级的芯片摆成网格（一排 5 格，装不下的靠滚轮往下翻），
- * 点一颗就把序号发给服务端；下半区是玩家自己的背包
- * （数量同步走的是这个容器的 broadcastChanges，所以必须带上）。
- * 金蓝两档共用这一个 Screen 类，摆哪一档看菜单实例的品级。
+ * 芯片自选包的界面：上半区把本品级的芯片摆成网格，一排 5 格、只放得下两行，
+ * 装不下的用右边「上页 / 下页」两颗按钮整页翻，网格下方标「1/2页」这种页码；
+ * 下半区是玩家自己的背包（数量同步走的是这个容器的 broadcastChanges，所以必须带上）。
+ * 金蓝两档共用这一个 Screen 类，摆哪一档、几页都看菜单实例给的芯片数。
  */
 public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 	/** 一格 20px、间隔 2px。一排 5 格而不是铺满：芯片还会继续加，摆成两排七列迟早挤成一坨 */
 	private static final int CELL = 22;
 	private static final int COLUMNS = 5;
-	/** 原版底图给自定义区只留得下两行（y=17~71，再往下就是背包标题），多出来的行只能滚 */
+	/** 原版底图给自定义区只留得下两行（y=17~71，再往下就是背包标题），多的翻页 */
 	private static final int VISIBLE_ROWS = 2;
 	private static final int GRID_Y = 20;
-	/** 左边留 32 比居中偏左 2px，给右边那条滚动条让出位置 */
 	private static final int GRID_X = 32;
-	private static final int BAR_X = GRID_X + COLUMNS * CELL + 6;
-	private static final int BAR_WIDTH = 4;
-	private static final int TRACK_HEIGHT = VISIBLE_ROWS * CELL - 2;
+	/** 每页颗数：翻页按整页走，页码才对得上「第几页」 */
+	private static final int PER_PAGE = COLUMNS * VISIBLE_ROWS;
+	/** 右边距两颗翻页键：24 宽正好贴到面板内侧（x=144~168） */
+	private static final int NAV_X = GRID_X + COLUMNS * CELL + 2;
+	private static final int NAV_WIDTH = 24;
+	/** 页码那行落在网格与背包标题之间那点空档（y=64~73，标题在 74） */
+	private static final int PAGE_TEXT_Y = GRID_Y + VISIBLE_ROWS * CELL;
 
 	private final List<ChipButton> choices = new ArrayList<>();
-	/** 已经翻过去的行数（按整行翻，滚半行看着像没对齐） */
-	private int scroll;
+	private final PageButton previous;
+	private final PageButton next;
+	private int page;
 
 	public ChipSelectScreen(ChipSelectMenu menu, Inventory inventory, Component title) {
 		super(menu, inventory, title);
 		this.imageWidth = VanillaPanel.WIDTH;
 		this.imageHeight = VanillaPanel.HEIGHT;
 		this.inventoryLabelY = VanillaPanel.HEIGHT - 94;
+		this.previous = new PageButton(this, "prev", -1);
+		this.next = new PageButton(this, "next", 1);
 	}
 
-	private int rows() {
-		return (this.menu.choices().size() + COLUMNS - 1) / COLUMNS;
-	}
-
-	private int maxScroll() {
-		return Math.max(0, rows() - VISIBLE_ROWS);
+	private int pages() {
+		return Math.max(1, (this.menu.choices().size() + PER_PAGE - 1) / PER_PAGE);
 	}
 
 	@Override
 	protected void init() {
 		super.init();
 		choices.clear();
-		List<Chip> chips = this.menu.choices();
-		for (Chip chip : chips) {
+		for (Chip chip : this.menu.choices()) {
 			ChipButton button = new ChipButton(chip, this.minecraft);
 			choices.add(button);
 			this.addRenderableWidget(button);
 		}
-		scroll = Math.min(scroll, maxScroll());
+		this.addRenderableWidget(previous);
+		this.addRenderableWidget(next);
+		page = Math.min(page, pages() - 1);
 		layout();
 	}
 
-	/** 按当前滚动量重排每一格：看不见的行摆到面板外，同时置灰，免得点不到却还能被键盘选中 */
+	/** 按当前页重排：芯片格摆到各自的行上，不在这一页的挪出视野 */
 	private void layout() {
 		for (int i = 0; i < choices.size(); i++) {
 			ChipButton button = choices.get(i);
-			int view = i / COLUMNS - scroll;
+			int view = i / COLUMNS - page * VISIBLE_ROWS;
 			boolean shown = view >= 0 && view < VISIBLE_ROWS;
 			button.setX(this.leftPos + GRID_X + (i % COLUMNS) * CELL);
 			button.setY(this.topPos + GRID_Y + view * CELL);
-			// 1.20.1 的可见/可用还是 ClickableWidget 上的公开字段，没有 setter
+			// 只藏不置灰的话，落在面板里那一行点得到却看不见，会误发序号
 			button.visible = shown;
 			button.active = shown;
 		}
-	}
-
-	@Override
-	public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-		if (maxScroll() == 0 || amount == 0.0
-				|| mouseY < this.topPos + GRID_Y || mouseY > this.topPos + GRID_Y + TRACK_HEIGHT
-				|| mouseX < this.leftPos || mouseX > this.leftPos + VanillaPanel.WIDTH) {
-			return super.mouseScrolled(mouseX, mouseY, amount);
-		}
-		int next = Math.max(0, Math.min(maxScroll(), scroll + (amount < 0 ? 1 : -1)));
-		if (next != scroll) {
-			scroll = next;
-			layout();
-		}
-		return true;
+		boolean paged = pages() > 1;
+		previous.moveTo(this.leftPos + NAV_X, this.topPos + GRID_Y, paged && page > 0);
+		next.moveTo(this.leftPos + NAV_X, this.topPos + GRID_Y + CELL, paged && page < pages() - 1);
 	}
 
 	@Override
@@ -101,41 +93,24 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 		VanillaPanel.draw(context, this.leftPos, this.topPos);
 		// 每颗芯片一个原版槽框：光秃秃摆物品看着像没互动的装饰
 		int chips = this.menu.choices().size();
-		for (int row = scroll; row < Math.min(rows(), scroll + VISIBLE_ROWS); row++) {
-			for (int col = 0; col < COLUMNS && row * COLUMNS + col < chips; col++) {
-				VanillaPanel.slotFrame(context, this.leftPos, this.topPos,
-						GRID_X + col * CELL + 2, GRID_Y + (row - scroll) * CELL + 2);
+		for (int row = 0; row < VISIBLE_ROWS; row++) {
+			for (int col = 0; col < COLUMNS; col++) {
+				if ((page * VISIBLE_ROWS + row) * COLUMNS + col < chips) {
+					VanillaPanel.slotFrame(context, this.leftPos, this.topPos,
+							GRID_X + col * CELL + 2, GRID_Y + row * CELL + 2);
+				}
 			}
 		}
-		drawScrollBar(context);
-	}
-
-	/** 只在真需要翻的时候画：不满两行还挂条灰杠，看着像界面坏了 */
-	private void drawScrollBar(GuiGraphics context) {
-		int max = maxScroll();
-		if (max == 0) {
-			return;
-		}
-		int top = this.topPos + GRID_Y;
-		context.fill(this.leftPos + BAR_X, top, this.leftPos + BAR_X + BAR_WIDTH,
-				top + TRACK_HEIGHT, 0xFFB2B2B2);
-		int thumb = Math.max(8, TRACK_HEIGHT * VISIBLE_ROWS / rows());
-		int thumbTop = top + (TRACK_HEIGHT - thumb) * scroll / max;
-		context.fill(this.leftPos + BAR_X, thumbTop, this.leftPos + BAR_X + BAR_WIDTH,
-				thumbTop + thumb, 0xFF585858);
-	}
-
-	@Override
-	public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-		super.render(context, mouseX, mouseY, delta);
-		for (ChipButton button : choices) {
-			if (button.visible && button.isHovered()) {
-				context.renderComponentTooltip(this.font, button.tooltip(), mouseX, mouseY);
-			}
+		if (pages() > 1) {
+			VanillaPanel.center(context,
+					Component.translatable("container.tacz_gun_level.chip_select_page",
+							page + 1, pages()),
+					this.font, this.leftPos + GRID_X + COLUMNS * CELL / 2,
+					this.topPos + PAGE_TEXT_Y, 0x404040);
 		}
 	}
 
-	/** 一格芯片：悬停补一圈框，点击把序号发给服务端。位置由 {@link #layout()} 按滚动量摆 */
+	/** 一格芯片：悬停补一圈框，点击把序号发给服务端。位置由 {@link #layout()} 按当前页摆 */
 	private static class ChipButton extends AbstractWidget {
 		private final Chip chip;
 		private final ItemStack stack;
@@ -162,12 +137,75 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 		}
 
 		@Override
-		protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput out) {
+		protected void updateWidgetNarration(NarrationElementOutput out) {
 			this.defaultButtonNarrationText(out);
 		}
 
 		List<Component> tooltip() {
 			return this.stack.getTooltipLines(this.client.player, TooltipFlag.Default.NORMAL);
+		}
+	}
+
+	@Override
+	public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+		super.render(context, mouseX, mouseY, delta);
+		for (ChipButton button : choices) {
+			if (button.visible && button.isHovered()) {
+				context.renderComponentTooltip(this.font, button.tooltip(), mouseX, mouseY);
+			}
+		}
+	}
+
+	private void turnPage(int direction) {
+		int target = Math.max(0, Math.min(pages() - 1, page + direction));
+		if (target != page) {
+			page = target;
+			layout();
+		}
+	}
+
+	/**
+	 * 翻页键：只有一页以上才出现，翻到头就自己变灰（省得点了没反应看着像坏了）。
+	 * 没用原版的 {@code Button}：那颗按钮默认按宽度裁字，24px 塞不下「上页」两个字加边距，
+	 * 而这里要的本来就是「和槽框一个味」的小方块，自己画反而不用跟裁字规则较劲。
+	 */
+	private static class PageButton extends AbstractWidget {
+		private final ChipSelectScreen screen;
+		private final int direction;
+		private final Component label;
+
+		PageButton(ChipSelectScreen screen, String name, int direction) {
+			super(0, 0, NAV_WIDTH, CELL,
+					Component.translatable("container.tacz_gun_level.chip_select_" + name));
+			this.screen = screen;
+			this.direction = direction;
+			this.label = this.getMessage();
+		}
+
+		void moveTo(int x, int y, boolean enabled) {
+			setX(x);
+			setY(y);
+			visible = screen.pages() > 1;
+			active = enabled;
+		}
+
+		@Override
+		protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+			// 槽框在 24x22 的键里居中（slotFrame 画在 x+slotX-1），文字中心正好也是框中心
+			VanillaPanel.slotFrame(context, this.getX(), this.getY(), 4, 3);
+			int color = this.active ? (this.isHovered() ? 0x202020 : 0x404040) : 0xB4B4B4;
+			context.drawCenteredString(Minecraft.getInstance().font, this.label,
+					this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, color);
+		}
+
+		@Override
+		public void onClick(double mouseX, double mouseY) {
+			screen.turnPage(direction);
+		}
+
+		@Override
+		protected void updateWidgetNarration(NarrationElementOutput out) {
+			this.defaultButtonNarrationText(out);
 		}
 	}
 }
