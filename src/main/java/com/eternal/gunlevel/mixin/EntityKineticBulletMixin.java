@@ -232,6 +232,10 @@ public abstract class EntityKineticBulletMixin {
 			this.gunlevel$momentumPower = (float) power;
 			chance += GunLevelMod.CONFIG.chipMomentumCritChancePerLevel * level * power;
 		}
+		// 蓝芯片·暴击改造：定值加在同一次掷骰上
+		if (chips.contains(Chip.CRIT_MOD)) {
+			chance += GunLevelMod.CONFIG.chipBlueCrit;
+		}
 		// 狩猎时刻：攒够 15 次命中的那档暴击率加成，加在同一次掷骰上
 		if (this.gunlevel$hunt) {
 			chance += HuntState.critBonus(shooter, world.getGameTime());
@@ -345,8 +349,11 @@ public abstract class EntityKineticBulletMixin {
 		float scaled = base * (float) LevelScaling.damageScale(this.gunlevel$level);
 		this.gunlevel$critApplied = 1.0F;
 		if (this.gunlevel$crit) {
-			this.gunlevel$critApplied = (float) LevelScaling.critMultiplier(
-					this.gunlevel$level, this.gunlevel$empowered);
+			this.gunlevel$critApplied = (float) (LevelScaling.critMultiplier(
+					this.gunlevel$level, this.gunlevel$empowered)
+					// 蓝芯片·暴击伤害改造：定值加在倍率上（1.5 起的话就是 1.6）
+					+ (this.gunlevel$chips.contains(Chip.CRIT_DAMAGE_MOD)
+							? GunLevelMod.CONFIG.chipBlueCritDamage : 0.0));
 			scaled *= this.gunlevel$critApplied;
 		}
 		if (this.gunlevel$highMag) {
@@ -365,6 +372,10 @@ public abstract class EntityKineticBulletMixin {
 			if (fervor > 0) {
 				scaled *= 1.0F + (float) fervor;
 			}
+		}
+		// 蓝芯片·伤害改造：定值一档，和等级倍率同区连乘
+		if (this.gunlevel$chips.contains(Chip.DAMAGE_MOD)) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueDamage;
 		}
 		// 狩猎时刻：标记期间攒够 15 次命中就给一档通用伤害加成（跟着标记走，切枪/脱战就没了）
 		if (this.gunlevel$hunt && this.gunlevel$shooter != null) {
@@ -386,6 +397,10 @@ public abstract class EntityKineticBulletMixin {
 			}
 		} else {
 			this.gunlevel$headHit = this.gunlevel$headshot;
+		}
+		// 蓝芯片·头部伤害改造：只看 TACZ 的真实爆头标记（烈焰咆哮那个概率转化不算给它）
+		if (this.gunlevel$headshot && this.gunlevel$chips.contains(Chip.HEAD_DAMAGE_MOD)) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueHeadDamage;
 		}
 		// 净化领域：射手站在已点亮的苏生领域里时，这一发末尾再附加 0.02×等级×记录值 点伤害。
 		// 加在整条倍率链的最后，所以它不吃暴击、也不再被等级倍率乘一遍；强击连发那次额外攻击

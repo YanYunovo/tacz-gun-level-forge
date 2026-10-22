@@ -190,5 +190,20 @@
   "item.tacz_gun_level.chip.hunting_moment.11": "获得 %1$s 秒的不消耗弹药",
   "item.tacz_gun_level.chip.hunting_moment.12": "射速提升 %1$s",
   "item.tacz_gun_level.chip.hunting_moment.13": "结束后，对标记目标造成记录的伤害并清空记录值",
-  "chip.tacz_gun_level.hunting_moment": "狩猎时刻"
+  "chip.tacz_gun_level.hunting_moment": "狩猎时刻",
+  "item.tacz_gun_level.tactical_chip_fire_rate_mod": "战术芯片:射速改造",
+  "item.tacz_gun_level.chip.fire_rate_mod": "提升 %1$s 射速",
+  "chip.tacz_gun_level.fire_rate_mod": "射速改造",
+  "item.tacz_gun_level.tactical_chip_crit_mod": "战术芯片:暴击改造",
+  "item.tacz_gun_level.chip.crit_mod": "提升 %1$s 暴击率",
+  "chip.tacz_gun_level.crit_mod": "暴击改造",
+  "item.tacz_gun_level.tactical_chip_damage_mod": "战术芯片:伤害改造",
+  "item.tacz_gun_level.chip.damage_mod": "提升 %1$s 伤害加成",
+  "chip.tacz_gun_level.damage_mod": "伤害改造",
+  "item.tacz_gun_level.tactical_chip_head_damage_mod": "战术芯片:头部伤害改造",
+  "item.tacz_gun_level.chip.head_damage_mod": "提升 %1$s 头部伤害加成",
+  "chip.tacz_gun_level.head_damage_mod": "头部伤害改造",
+  "item.tacz_gun_level.tactical_chip_crit_damage_mod": "战术芯片:暴击伤害改造",
+  "item.tacz_gun_level.chip.crit_damage_mod": "暴击伤害提升 %1$s",
+  "chip.tacz_gun_level.crit_damage_mod": "暴击伤害改造"
 }

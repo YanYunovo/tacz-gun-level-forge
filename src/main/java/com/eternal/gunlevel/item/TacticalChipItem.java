@@ -3,6 +3,7 @@ package com.eternal.gunlevel.item;
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.LevelConfig;
 import com.eternal.gunlevel.effect.Chip;
+import com.eternal.gunlevel.effect.ChipTier;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -21,7 +22,9 @@ public class TacticalChipItem extends Item {
 	private final Chip chip;
 
 	public TacticalChipItem(Chip chip) {
-		super(new Item.Properties().stacksTo(16).rarity(Rarity.RARE));
+		super(new Item.Properties().stacksTo(16)
+				// 金芯片是稀有件（tooltip 走金色），蓝芯片是常见件
+				.rarity(chip.tier() == ChipTier.GOLD ? Rarity.RARE : Rarity.COMMON));
 		this.chip = chip;
 	}
 
@@ -190,6 +193,16 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.11", number(c.chipHuntBurstSeconds)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.12", percent(c.chipHuntBurstFireRate)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hunting_moment.13"));
+		} else if (chip == Chip.FIRE_RATE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fire_rate_mod", percent(c.chipBlueFireRate)));
+		} else if (chip == Chip.CRIT_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.crit_mod", percent(c.chipBlueCrit)));
+		} else if (chip == Chip.DAMAGE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.damage_mod", percent(c.chipBlueDamage)));
+		} else if (chip == Chip.HEAD_DAMAGE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.head_damage_mod", percent(c.chipBlueHeadDamage)));
+		} else if (chip == Chip.CRIT_DAMAGE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.crit_damage_mod", percent(c.chipBlueCritDamage)));
 		}
 	}
 

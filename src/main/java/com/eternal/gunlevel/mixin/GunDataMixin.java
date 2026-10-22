@@ -1,5 +1,6 @@
 package com.eternal.gunlevel.mixin;
 
+import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz.guns.resource.pojo.data.gun.InaccuracyType;
@@ -28,6 +29,11 @@ public abstract class GunDataMixin {
 		if (shooter != null) {
 			scale *= com.eternal.gunlevel.effect.HuntState.intervalScale(shooter,
 					shooter.level().getGameTime());
+		}
+		// 蓝芯片·射速改造：定值一档，和等级无关
+		if (shooter != null && com.eternal.gunlevel.item.GunChipData.get(shooter.getMainHandItem())
+				.contains(com.eternal.gunlevel.effect.Chip.FIRE_RATE_MOD)) {
+			scale *= 1.0 / (1.0 + GunLevelMod.CONFIG.chipBlueFireRate);
 		}
 		if (interval <= 0 || scale == 1.0) {
 			return;

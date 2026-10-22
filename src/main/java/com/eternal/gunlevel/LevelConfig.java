@@ -302,6 +302,16 @@ public class LevelConfig {
 	public double chipHuntBurstSeconds = 3.0;
 	/** 狩猎时刻：爆发窗口的射速提升（换算成射击间隔 = 除以 1+此值） */
 	public double chipHuntBurstFireRate = 0.16;
+	/** 蓝芯片·射速改造：射速提升（换算成射击间隔 = 除以 1+此值），定值不乘等级 */
+	public double chipBlueFireRate = 0.05;
+	/** 蓝芯片·暴击改造：暴击率提升，定值不乘等级 */
+	public double chipBlueCrit = 0.05;
+	/** 蓝芯片·伤害改造：伤害加成，定值不乘等级 */
+	public double chipBlueDamage = 0.05;
+	/** 蓝芯片·头部伤害改造：头部伤害加成，定值不乘等级 */
+	public double chipBlueHeadDamage = 0.10;
+	/** 蓝芯片·暴击伤害改造：暴击伤害倍率的加值，定值不乘等级 */
+	public double chipBlueCritDamage = 0.10;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */
