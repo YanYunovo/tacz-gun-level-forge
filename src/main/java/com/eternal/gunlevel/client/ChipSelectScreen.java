@@ -16,8 +16,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 金芯片自选包的界面：上半区把所有金芯片摆成网格，点一颗就把序号发给服务端；
+ * 芯片自选包的界面：上半区把本品级的芯片摆成网格，点一颗就把序号发给服务端；
  * 下半区是玩家自己的背包（数量同步走的是这个容器的 broadcastChanges，所以必须带上）。
+ * 金蓝两档共用这一个 Screen 类，摆哪一档看菜单实例的品级。
  */
 public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 	private final List<ChipButton> choices = new ArrayList<>();
@@ -33,10 +34,10 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 	protected void init() {
 		super.init();
 		choices.clear();
-		Chip[] chips = Chip.values();
-		for (int i = 0; i < chips.length; i++) {
-			ChipButton button = new ChipButton(this.leftPos + ChipSelectMenu.cellX(i),
-					this.topPos + ChipSelectMenu.cellY(i), chips[i], this.minecraft);
+		List<Chip> chips = this.menu.choices();
+		for (int i = 0; i < chips.size(); i++) {
+			ChipButton button = new ChipButton(this.leftPos + this.menu.cellX(i),
+					this.topPos + this.menu.cellY(i), chips.get(i), this.minecraft);
 			choices.add(button);
 			this.addRenderableWidget(button);
 		}
@@ -46,9 +47,9 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 	protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
 		VanillaPanel.draw(context, this.leftPos, this.topPos);
 		// 每颗芯片一个原版槽框：光秃秃摆物品看着像没互动的装饰
-		for (int i = 0; i < Chip.values().length; i++) {
+		for (int i = 0; i < this.menu.choices().size(); i++) {
 			VanillaPanel.slotFrame(context, this.leftPos, this.topPos,
-					ChipSelectMenu.cellX(i) + 2, ChipSelectMenu.cellY(i) + 2);
+					this.menu.cellX(i) + 2, this.menu.cellY(i) + 2);
 		}
 	}
 

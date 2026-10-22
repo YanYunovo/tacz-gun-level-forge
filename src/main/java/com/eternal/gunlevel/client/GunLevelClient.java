@@ -68,7 +68,10 @@ public final class GunLevelClient {
 			MenuScreens.register(UpgradeMenu.TYPE, UpgradeMenuScreen::new);
 			MenuScreens.register(SynthesisMenu.TYPE, SynthesisMenuScreen::new);
 			MenuScreens.register(ChipMenu.TYPE, ChipMenuScreen::new);
-			MenuScreens.register(ChipSelectMenu.TYPE, ChipSelectScreen::new);
+			// 自选界面每个品级注册一个类型，Screen 类是同一个
+			for (com.eternal.gunlevel.effect.ChipTier tier : com.eternal.gunlevel.effect.ChipTier.values()) {
+				MenuScreens.register(ChipSelectMenu.typeOf(tier), ChipSelectScreen::new);
+			}
 		});
 	}
 

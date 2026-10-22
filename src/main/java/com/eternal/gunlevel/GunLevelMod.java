@@ -8,6 +8,7 @@ import com.eternal.gunlevel.effect.AuroraState;
 import com.eternal.gunlevel.effect.BloomDomain;
 import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.ChipState;
+import com.eternal.gunlevel.effect.ChipTier;
 import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.CrystallizationEffect;
 import com.eternal.gunlevel.effect.Element;
@@ -20,8 +21,11 @@ import com.eternal.gunlevel.effect.QuickeningEffect;
 import com.eternal.gunlevel.effect.ThunderVoiceState;
 import com.eternal.gunlevel.effect.WindGuardState;
 import com.eternal.gunlevel.entity.RockConstructEntity;
+import com.eternal.gunlevel.item.BrokenChipItem;
+import com.eternal.gunlevel.item.ChipPackItem;
 import com.eternal.gunlevel.item.ElementCoreItem;
 import com.eternal.gunlevel.item.EmptyCoreItem;
+import com.eternal.gunlevel.item.RandomChipItem;
 import com.eternal.gunlevel.item.TacticalChipItem;
 import com.eternal.gunlevel.item.UpgradeComponentItem;
 import com.eternal.gunlevel.menu.ChipMenu;
@@ -95,12 +99,14 @@ public class GunLevelMod {
 	public static Item CORE_ROCK;
 	public static Item EMPTY_CORE;
 
-	/** 随机金芯片：右键抽一颗金芯片并附赠一个破碎的金芯片，奖池跟着 {@link Chip} 枚举走 */
-	public static Item RANDOM_GOLD_CHIP;
-	/** 破碎的金芯片：拆金芯片的产物，9 个合成一个金芯片自选包 */
-	public static Item BROKEN_GOLD_CHIP;
-	/** 金芯片自选包：右键开界面，从所有金芯片里挑一颗 */
-	public static Item GOLD_CHIP_PACK;
+	/**
+	 * 每个品级一套「随机芯片 / 破碎的芯片 / 芯片自选包」，下标用 {@link ChipTier#ordinal()}。
+	 * 三件的配方与奖池都按品级分叉，以后加紫芯片只在这个枚举里加一项。
+	 * 物品本身在 RegisterEvent 的 supplier 里现场 new，这里只是留位子。
+	 */
+	public static final Item[] RANDOM_CHIP = new Item[ChipTier.values().length];
+	public static final Item[] BROKEN_CHIP = new Item[ChipTier.values().length];
+	public static final Item[] CHIP_PACK = new Item[ChipTier.values().length];
 
 	/** 永恒改装的升级材料：I~IV 分别用于升到 LV.2~LV.5 */
 	public static Item COMPONENT_I;
@@ -131,7 +137,6 @@ public class GunLevelMod {
 	public static MenuType<UpgradeMenu> UPGRADE_MENU_TYPE;
 	public static MenuType<SynthesisMenu> SYNTHESIS_MENU_TYPE;
 	public static MenuType<ChipMenu> CHIP_MENU_TYPE;
-	public static MenuType<ChipSelectMenu> CHIP_SELECT_MENU_TYPE;
 
 	/** 本模组的创造分类：三台机器 + 四个升级组件 + 空核芯 + 七个元素核芯 + 战术芯片，图标用火元素核芯 */
 	public static CreativeModeTab ELEMENT_UPGRADE_GROUP;
@@ -190,12 +195,23 @@ public class GunLevelMod {
 					() -> CORE_ROCK = new ElementCoreItem(Element.ROCK));
 			event.register(ForgeRegistries.Keys.ITEMS, id("empty_core"),
 					() -> EMPTY_CORE = new EmptyCoreItem());
-			event.register(ForgeRegistries.Keys.ITEMS, id("random_gold_chip"),
-					() -> RANDOM_GOLD_CHIP = new com.eternal.gunlevel.item.RandomGoldChipItem());
-			event.register(ForgeRegistries.Keys.ITEMS, id("broken_gold_chip"),
-					() -> BROKEN_GOLD_CHIP = new com.eternal.gunlevel.item.BrokenGoldChipItem());
-			event.register(ForgeRegistries.Keys.ITEMS, id("gold_chip_pack"),
-					() -> GOLD_CHIP_PACK = new com.eternal.gunlevel.item.GoldChipPackItem());
+			for (ChipTier tier : ChipTier.values()) {
+				event.register(ForgeRegistries.Keys.ITEMS, id(tier.randomChipId()), () -> {
+					Item item = new RandomChipItem(tier);
+					RANDOM_CHIP[tier.ordinal()] = item;
+					return item;
+				});
+				event.register(ForgeRegistries.Keys.ITEMS, id(tier.brokenChipId()), () -> {
+					Item item = new BrokenChipItem();
+					BROKEN_CHIP[tier.ordinal()] = item;
+					return item;
+				});
+				event.register(ForgeRegistries.Keys.ITEMS, id(tier.chipPackId()), () -> {
+					Item item = new ChipPackItem(tier);
+					CHIP_PACK[tier.ordinal()] = item;
+					return item;
+				});
+			}
 			event.register(ForgeRegistries.Keys.ITEMS, id("upgrade_component_i"),
 					() -> COMPONENT_I = new UpgradeComponentItem(2));
 			event.register(ForgeRegistries.Keys.ITEMS, id("upgrade_component_ii"),
@@ -231,9 +247,15 @@ public class GunLevelMod {
 			event.register(ForgeRegistries.Keys.MENU_TYPES, id("chip_assembly_table"),
 					() -> ChipMenu.TYPE = CHIP_MENU_TYPE = IForgeMenuType.create(
 							(syncId, inventory, buf) -> new ChipMenu(syncId, inventory)));
-			event.register(ForgeRegistries.Keys.MENU_TYPES, id("chip_select"),
-					() -> ChipSelectMenu.TYPE = CHIP_SELECT_MENU_TYPE = IForgeMenuType.create(
-							(syncId, inventory, buf) -> new ChipSelectMenu(syncId, inventory)));
+			// 自选界面一个品级一个类型：客户端只看类型就知道该摆哪一档的芯片
+			for (ChipTier tier : ChipTier.values()) {
+				event.register(ForgeRegistries.Keys.MENU_TYPES, id("chip_select_" + tier.id()), () -> {
+					MenuType<ChipSelectMenu> type = IForgeMenuType.create(
+							(syncId, inventory, buf) -> new ChipSelectMenu(syncId, inventory, tier));
+					ChipSelectMenu.registerType(tier, type);
+					return type;
+				});
+			}
 		} else if (Registries.CREATIVE_MODE_TAB.equals(event.getRegistryKey())) {
 			event.register(Registries.CREATIVE_MODE_TAB, id("element_upgrade"),
 					() -> ELEMENT_UPGRADE_GROUP = buildCreativeTab());
@@ -272,9 +294,11 @@ public class GunLevelMod {
 					for (Item chip : CHIPS) {
 						output.accept(chip);
 					}
-					output.accept(RANDOM_GOLD_CHIP);
-					output.accept(BROKEN_GOLD_CHIP);
-					output.accept(GOLD_CHIP_PACK);
+					for (ChipTier tier : ChipTier.values()) {
+						output.accept(RANDOM_CHIP[tier.ordinal()]);
+						output.accept(BROKEN_CHIP[tier.ordinal()]);
+						output.accept(CHIP_PACK[tier.ordinal()]);
+					}
 				})
 				.build();
 	}

@@ -22,22 +22,17 @@ public enum ChipTier {
 		return name().toLowerCase(Locale.ROOT);
 	}
 
-	/** 物品 id 的中缀：random_gold_chip、broken_blue_chip、gold_chip_pack */
-	public String itemNamePrefix() {
-		return id();
+	/** 三件经济件的注册名，与物品模型文件名一致：random_gold_chip、broken_blue_chip、gold_chip_pack */
+	public String randomChipId() {
+		return "random_" + id() + "_chip";
 	}
 
-	/** 共用贴图的文件名（不含扩展名），见 textures/item/ */
-	public String texture() {
-		return "tactical_chip_" + id();
+	public String brokenChipId() {
+		return "broken_" + id() + "_chip";
 	}
 
-	/** 中文品级名，拼「随机X芯片」「X芯片自选包」这些物品名用 */
-	public String displayName() {
-		return switch (this) {
-			case GOLD -> "金";
-			case BLUE -> "蓝";
-		};
+	public String chipPackId() {
+		return id() + "_chip_pack";
 	}
 
 	/** 这一档的全部芯片，按 {@link Chip} 的声明顺序 —— 奖池、自选界面、创造分类都靠它 */

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "tacz_gun_level:tactical_chip_head_damage_mod"
+    }
+  ],
+  "result": {
+    "item": "tacz_gun_level:broken_blue_chip",
+    "count": 4
+  }
+}
