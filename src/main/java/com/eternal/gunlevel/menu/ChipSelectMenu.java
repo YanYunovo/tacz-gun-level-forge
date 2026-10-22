@@ -30,11 +30,6 @@ import java.util.Map;
  * {@code broadcastChanges}：不带槽位的话，扣掉一个自选包、多出一颗芯片这些变化客户端根本看不到。
  */
 public class ChipSelectMenu extends AbstractContainerMenu implements MenuProvider {
-	/** 选择区排版见 {@link #cellX(int)}：一格 20px、间隔 2px，最多两行 */
-	public static final int CELL = 22;
-	public static final int GRID_Y = 20;
-	public static final int PANEL_WIDTH = 176;
-
 	private static final Map<ChipTier, MenuType<ChipSelectMenu>> TYPES =
 			new EnumMap<>(ChipTier.class);
 
@@ -64,18 +59,6 @@ public class ChipSelectMenu extends AbstractContainerMenu implements MenuProvide
 
 	public List<Chip> choices() {
 		return tier.chips();
-	}
-
-	public int columns() {
-		return Math.max(1, Math.min(7, (choices().size() + 1) / 2));
-	}
-
-	public int cellX(int index) {
-		return (PANEL_WIDTH - columns() * CELL + 2) / 2 + (index % columns()) * CELL;
-	}
-
-	public int cellY(int index) {
-		return GRID_Y + (index / columns()) * CELL;
 	}
 
 	/**
