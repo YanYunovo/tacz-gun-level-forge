@@ -97,7 +97,12 @@ public enum Chip {
 	 * 勇者无惧：拿收益换风险的攻防互换芯片 —— 主手持着装了它的枪时，这一把枪的伤害 +20%，
 	 * 同时射手受到的伤害也 +15%（护甲计算之前放大，所以厚甲能吃掉一部分代价）。
 	 */
-	FEARLESS(ChipTier.PURPLE);
+	FEARLESS(ChipTier.PURPLE),
+	/**
+	 * 灵动步伐：主手持着装了它的枪时移动速度 +20%，代价是护甲值 −4（见 {@link NimbleState}）。
+	 * 收益与代价同时给、同时收，切走枪立刻还原，不留拖尾。
+	 */
+	NIMBLE_STEP(ChipTier.PURPLE);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -135,6 +140,7 @@ public enum Chip {
 			case RHYTHM_SHOT -> "节奏射击";
 			case UNSTOPPABLE -> "无坚不摧";
 			case FEARLESS -> "勇者无惧";
+			case NIMBLE_STEP -> "灵动步伐";
 		};
 	}
 

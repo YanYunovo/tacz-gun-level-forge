@@ -229,6 +229,11 @@ public class TacticalChipItem extends Item {
 					percent(c.chipPurpleFearlessDamageTaken)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fearless.2",
 					percent(c.chipPurpleFearlessDamage)));
+		} else if (chip == Chip.NIMBLE_STEP) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.nimble_step.1",
+					number(c.chipPurpleNimbleArmorPenalty)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.nimble_step.2",
+					percent(c.chipPurpleNimbleSpeed)));
 		}
 	}
 

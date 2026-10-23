@@ -34,6 +34,8 @@ public final class GunLevelNetwork {
 	public static Consumer<Boolean> onRoarSpeed;
 	/** S2C：狩猎时刻那档移速加成的两端同步 */
 	public static Consumer<Boolean> onHuntSpeed;
+	/** S2C：灵动步伐那对修正（移速 +20% / 护甲 −4）的两端同步 */
+	public static Consumer<Boolean> onNimble;
 
 	/** S2C：经验条上方那行小字（哪颗芯片 + 哪种文案） */
 	public record ChipHint(int chipOrdinal, int kind) {
@@ -75,6 +77,10 @@ public final class GunLevelNetwork {
 
 	/** S2C：狩猎时刻 15 层那档移速加成，同样是两端各挂一次 */
 	public record HuntSpeedSync(boolean on) {
+	}
+
+	/** S2C：灵动步伐的移速与护甲修正，一个布尔管一对（两者必须同时给、同时收） */
+	public record NimbleSync(boolean on) {
 	}
 
 	private GunLevelNetwork() {
@@ -162,6 +168,17 @@ public final class GunLevelNetwork {
 					});
 					ctx.get().setPacketHandled(true);
 				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(7, NimbleSync.class,
+				(msg, buf) -> buf.writeBoolean(msg.on()),
+				buf -> new NimbleSync(buf.readBoolean()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onNimble != null) {
+							onNimble.accept(msg.on());
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendHint(ServerPlayer player, int chipOrdinal, int kind) {
@@ -191,5 +208,9 @@ public final class GunLevelNetwork {
 
 	public static void sendHuntSpeed(ServerPlayer player, boolean on) {
 		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new HuntSpeedSync(on));
+	}
+
+	public static void sendNimble(ServerPlayer player, boolean on) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new NimbleSync(on));
 	}
 }

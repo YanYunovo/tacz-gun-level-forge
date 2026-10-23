@@ -48,6 +48,9 @@ public final class GunLevelClient {
 		GunLevelNetwork.onWindGuard = on -> WindGuardState.applySpeedClient(
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onThunderDash = blocks -> ThunderDash.dash(Minecraft.getInstance().player, blocks);
+		// 灵动步伐：客户端也挂同一对修正，护甲那份只影响 HUD，但少了它就会「图标满甲、实际少吃 4 点」
+		GunLevelNetwork.onNimble = on -> com.eternal.gunlevel.effect.NimbleState.applyClient(
+				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onRoarSpeed = on -> FlameRoarState.applySpeedClient(
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onHuntSpeed = on -> HuntState.applySpeedClient(

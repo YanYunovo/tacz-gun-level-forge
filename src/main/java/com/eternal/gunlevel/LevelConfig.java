@@ -336,6 +336,10 @@ public class LevelConfig {
 	public double chipPurpleFearlessDamage = 0.20;
 	/** 紫芯片·勇者无惧：作为代价，受到的伤害也放大（护甲计算之前） */
 	public double chipPurpleFearlessDamageTaken = 0.15;
+	/** 紫芯片·灵动步伐：移速加成（MULTIPLY_TOTAL，两端各挂一份） */
+	public double chipPurpleNimbleSpeed = 0.20;
+	/** 紫芯片·灵动步伐：作为代价扣掉的护甲点数（ADDITION，属性下限 0，穿不满就归零） */
+	public double chipPurpleNimbleArmorPenalty = 4.0;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */
