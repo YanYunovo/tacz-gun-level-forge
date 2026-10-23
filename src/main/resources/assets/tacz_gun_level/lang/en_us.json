@@ -224,6 +224,7 @@
   "item.tacz_gun_level.tactical_chip_rhythm_shot": "Tactical Chip: Rhythm",
   "item.tacz_gun_level.chip.rhythm_shot.1": "+%1$s damage per hit landed",
   "item.tacz_gun_level.chip.rhythm_shot.2": "Capped at %1$s",
+  "item.tacz_gun_level.chip.rhythm_shot.3": "Ends on a miss or after %1$ss out of combat",
   "chip.tacz_gun_level.rhythm_shot": "Rhythm",
   "item.tacz_gun_level.tactical_chip_unstoppable": "Tactical Chip: Unstoppable",
   "item.tacz_gun_level.chip.unstoppable": "+%2$s crit chance vs targets above %1$s HP",

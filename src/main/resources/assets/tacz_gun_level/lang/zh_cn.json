@@ -224,6 +224,7 @@
   "item.tacz_gun_level.tactical_chip_rhythm_shot": "战术芯片:节奏射击",
   "item.tacz_gun_level.chip.rhythm_shot.1": "每次命中后获得%1$s伤害加成",
   "item.tacz_gun_level.chip.rhythm_shot.2": "上限%1$s",
+  "item.tacz_gun_level.chip.rhythm_shot.3": "未命中目标时或者脱战%1$s秒后移除增益",
   "chip.tacz_gun_level.rhythm_shot": "节奏射击",
   "item.tacz_gun_level.tactical_chip_unstoppable": "战术芯片:无坚不摧",
   "item.tacz_gun_level.chip.unstoppable": "对%1$s血量以上的目标暴击率提升%2$s",

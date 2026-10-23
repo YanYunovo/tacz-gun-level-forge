@@ -219,6 +219,8 @@ public class TacticalChipItem extends Item {
 					percent(c.chipPurpleRhythmPerHit)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rhythm_shot.2",
 					percent(c.chipPurpleRhythmCap)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rhythm_shot.3",
+					number(c.chipPurpleRhythmResetSeconds)));
 		} else if (chip == Chip.UNSTOPPABLE) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.unstoppable",
 					percent(c.chipPurpleUnstoppableHealthRatio), percent(c.chipPurpleUnstoppableCrit)));
