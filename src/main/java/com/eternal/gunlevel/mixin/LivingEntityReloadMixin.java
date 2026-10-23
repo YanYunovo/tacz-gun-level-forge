@@ -56,8 +56,9 @@ public abstract class LivingEntityReloadMixin {
 		// 换弹就意味着上一匣结束：先抹掉标记，再决定这一匣是不是新的极光匣
 		GunAuroraData.set(main, false);
 		int level = LevelScaling.levelOfStack(main);
-		if (level > 0 && GunChipData.get(main).contains(Chip.AURORA) && AuroraState.isReady(shooter)) {
-			AuroraState.consume(shooter);
+		// 就绪与消耗都按**这把枪**问（命中账记在枪 NBT 上，换枪不会接到别的枪的进度）
+		if (level > 0 && AuroraState.carries(main) && AuroraState.isReady(main)) {
+			AuroraState.consume(main);
 			GunAuroraData.set(main, true);
 		}
 		AuroraState.syncCarrier(shooter);

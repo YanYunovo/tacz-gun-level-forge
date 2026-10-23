@@ -2,28 +2,28 @@ package com.eternal.gunlevel.effect;
 
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.item.GunAuroraData;
-import net.minecraft.world.entity.LivingEntity;
+import com.eternal.gunlevel.item.GunChipData;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 
 /**
- * 极光追击的命中记账：只在服务端按射手 UUID 累计，攒满 chipAuroraHits 就就绪，
- * 下一次换弹消耗掉就绪（换成极光匣）并清零。从极光匣里打出去的子弹一颗都不记，
- * 所以「打完一匣 → 重新攒满 → 再开一匣」是串不成连发的。
+ * 极光追击的命中记账：**按枪**累计（用户口径「武器累计命中 chipAuroraHits 次」），
+ * 账记在那把枪物品的 NBT 上（见 {@link GunAuroraData}）。所以：
+ * 只有装着这颗芯片的枪打出去的命中才攒；换另一把极光枪不会接到上一把的进度；
+ * 用没装这颗芯片的枪打人一个数都不加。攒满后下一次换弹消耗掉就绪（换成极光匣）并把这把枪清零。
+ * 从极光匣里打出去的子弹一颗都不记，所以「打完一匣 → 重新攒满 → 再开一匣」串不成连发。
  *
- * 「还在不在极光匣里」这件事记在枪物品 NBT 上（见 {@link GunAuroraData}），不在计时器上：
+ * <p>「还在不在极光匣里」同样记在枪 NBT 上，不在计时器上：
  * 跟着弹匣走才不会一匣没打完就掉加成，也不会因为效果到点而提前重新开始累计命中。
  */
 public final class AuroraState {
-	private static final ConcurrentHashMap<UUID, Integer> HITS = new ConcurrentHashMap<>();
-
 	private AuroraState() {
+	}
+
+	/** 这把枪是不是装了极光追击 */
+	public static boolean carries(ItemStack gun) {
+		return !gun.isEmpty() && GunChipData.get(gun).contains(Chip.AURORA);
 	}
 
 	/**
@@ -64,53 +64,34 @@ public final class AuroraState {
 	}
 
 	/**
-	 * 打中一发：返回是否刚跨过就绪线（调用方据此提示「极光弹匣已就绪」）。
-	 * 只在跨过去的那一次返回 true，所以攒满之后继续命中不会每发刷一行提示；
-	 * 用「跨过」而不是「等于」是因为就绪阈值可以在运行时改小，配相等会永远对不上。
+	 * 打中一发：只认装着这颗芯片的那把枪，账记在枪 NBT 上。
+	 * 返回是否刚跨过就绪线（调用方据此提示「极光弹匣已就绪」）；只在跨过去那一次返回 true，
+	 * 用「跨过」而不是「相等」是因为阈值可以运行时改小，配相等会永远对不上。
 	 *
-	 * {@code fromAuroraMag} 是「这发子弹出自极光匣」，由调用方在子弹生成时按那把枪的标记定格 ——
-	 * 命中落地的时刻玩家可能已经换枪了，不能拿当时的主手来判断。
+	 * @param gun           打中这一发的那把枪（服务端从射手背包里找出来的那一件）
+	 * @param fromAuroraMag 这一发是不是从极光匣里打出去的（子弹生成时定格，命中时玩家可能已经换枪）
 	 */
-	public static boolean onHit(LivingEntity shooter, boolean fromAuroraMag) {
-		if (shooter == null || fromAuroraMag) {
+	public static boolean onHit(LivingEntity shooter, ItemStack gun, boolean fromAuroraMag) {
+		if (shooter == null || fromAuroraMag || !carries(gun)) {
 			return false;
 		}
 		int threshold = threshold();
-		int hits = HITS.merge(shooter.getUUID(), 1, Integer::sum);
-		return hits >= threshold && hits - 1 < threshold;
+		int before = GunAuroraData.hits(gun);
+		int after = before + 1;
+		GunAuroraData.setHits(gun, after);
+		return after >= threshold && before < threshold;
 	}
 
-	public static boolean isReady(LivingEntity shooter) {
-		if (shooter == null) {
-			return false;
-		}
-		return HITS.getOrDefault(shooter.getUUID(), 0) >= threshold();
+	public static boolean isReady(ItemStack gun) {
+		return carries(gun) && GunAuroraData.hits(gun) >= threshold();
 	}
 
 	private static int threshold() {
 		return Math.max(1, GunLevelMod.CONFIG.chipAuroraHits);
 	}
 
-	/** 特殊换弹用掉就绪：计数清零，重新攒下一轮 */
-	public static void consume(LivingEntity shooter) {
-		if (shooter != null) {
-			HITS.remove(shooter.getUUID());
-		}
-	}
-
-	public static void clear() {
-		HITS.clear();
-	}
-
-	/** 掉线就把手上的账抹掉，免得留一堆没人认领的计数（就绪状态本来就只在这一局有意义） */
-	public static void tick(MinecraftServer server) {
-		if (HITS.isEmpty()) {
-			return;
-		}
-		Set<UUID> online = new HashSet<>();
-		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			online.add(player.getUUID());
-		}
-		HITS.keySet().retainAll(online);
+	/** 特殊换弹用掉就绪：这把枪的账清零，重新攒下一轮 */
+	public static void consume(ItemStack gun) {
+		GunAuroraData.setHits(gun, 0);
 	}
 }

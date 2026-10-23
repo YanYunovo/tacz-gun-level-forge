@@ -530,7 +530,9 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$aurora && !this.gunlevel$auroraCounted
 				&& target.level() instanceof ServerLevel) {
 			this.gunlevel$auroraCounted = true;
-			if (AuroraState.onHit(this.gunlevel$shooter, this.gunlevel$auroraMag)) {
+			// 命中账记在**这把枪**上：只有装着极光追击的那把枪才攒（用户口径「武器累计命中」）
+			ItemStack auroraGun = TaczCompat.findGunStack(this.gunlevel$shooter, this.gunlevel$gunId);
+			if (AuroraState.onHit(this.gunlevel$shooter, auroraGun, this.gunlevel$auroraMag)) {
 				ChipHints.show(this.gunlevel$shooter, Chip.AURORA, ChipHints.AURORA_READY);
 			}
 		}

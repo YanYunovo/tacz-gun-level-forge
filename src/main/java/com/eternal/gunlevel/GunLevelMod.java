@@ -319,7 +319,6 @@ public class GunLevelMod {
 		CombatState.tick(event.getServer());
 		BloomDomain.tick(event.getServer());
 		ChipState.tick(event.getServer());
-		AuroraState.tick(event.getServer());
 		MomentumState.tick(event.getServer());
 		WindGuardState.tick(event.getServer());
 		ThunderVoiceState.tick(event.getServer());
@@ -334,7 +333,6 @@ public class GunLevelMod {
 		CombatState.clear();
 		BloomDomain.clear();
 		ChipState.clear();
-		AuroraState.clear();
 		MomentumState.clear();
 		WindGuardState.clear();
 		ThunderVoiceState.clear();
