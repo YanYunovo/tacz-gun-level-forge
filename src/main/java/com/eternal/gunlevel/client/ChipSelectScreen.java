@@ -102,13 +102,13 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 
 	@Override
 	protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
-		VanillaPanel.draw(context, this.leftPos, this.topPos);
-		// 每颗芯片一个原版槽框：光秃秃摆物品看着像没互动的装饰
+		VanillaPanel.draw(context, this.leftPos, this.topPos, VanillaPanel.SELECT);
+		// 每颗芯片一个槽格（从贴图右上角的备用槽格取）：光秃秃摆物品看着像没互动的装饰
 		int chips = this.menu.choices().size();
 		for (int row = 0; row < VISIBLE_ROWS; row++) {
 			for (int col = 0; col < COLUMNS; col++) {
 				if ((page * VISIBLE_ROWS + row) * COLUMNS + col < chips) {
-					VanillaPanel.slotFrame(context, this.leftPos, this.topPos,
+					VanillaPanel.slotFrame(context, VanillaPanel.SELECT, this.leftPos, this.topPos,
 							GRID_X + col * CELL + 2, GRID_Y + row * CELL + 2);
 				}
 			}
@@ -118,8 +118,18 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 					Component.translatable("container.tacz_gun_level.chip_select_page",
 							page + 1, pages()),
 					this.font, this.leftPos + GRID_X + COLUMNS * CELL / 2,
-					this.topPos + PAGE_TEXT_Y, 0x404040);
+					this.topPos + PAGE_TEXT_Y, VanillaPanel.TEXT_DIM);
 		}
+	}
+
+	/** 标题画在贴图的标题带里（网格从 y=20 起，压不到），「物品栏」翻浅色。
+	 *  背包标题拿 translatable 而不是读父类字段：那个字段在这套映射里不可见。 */
+	@Override
+	protected void renderLabels(GuiGraphics context, int mouseX, int mouseY) {
+		context.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY,
+				VanillaPanel.TEXT, false);
+		context.drawString(this.font, Component.translatable("container.inventory"),
+				this.inventoryLabelX, this.inventoryLabelY, VanillaPanel.TEXT_DIM, false);
 	}
 
 	/** 一格芯片：悬停补一圈框，点击把序号发给服务端。位置由 {@link #layout()} 按当前页摆 */

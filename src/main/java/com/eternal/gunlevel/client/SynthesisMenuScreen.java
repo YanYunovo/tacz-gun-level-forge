@@ -9,11 +9,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.chat.Component;
 
 /**
- * 元素合成台界面：和升级台同款原版容器底图，左组合成核芯、右组给枪安装核芯。
+ * 元素合成台界面：深色枪钢面板（槽位烘焙在贴图里），左组合成核芯、右组给枪安装核芯。
  */
 public class SynthesisMenuScreen extends AbstractContainerScreen<SynthesisMenu> {
-	private static final int TEXT = 0x404040;
-	private static final int TEXT_DIM = 0x6C6C6C;
+	private static final int TEXT = VanillaPanel.TEXT;
+	private static final int TEXT_DIM = VanillaPanel.TEXT_DIM;
 	private static final String[] SLOT_KEYS = {
 			"gui.tacz_gun_level.slot_material_core", "gui.tacz_gun_level.slot_carrier",
 			"gui.tacz_gun_level.slot_core", "gui.tacz_gun_level.slot_gun",
@@ -29,10 +29,7 @@ public class SynthesisMenuScreen extends AbstractContainerScreen<SynthesisMenu> 
 
 	@Override
 	protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
-		VanillaPanel.draw(context, this.leftPos, this.topPos);
-		for (int slotX : SynthesisMenu.SLOT_X) {
-			VanillaPanel.slotFrame(context, this.leftPos, this.topPos, slotX, SynthesisMenu.SLOT_Y);
-		}
+		VanillaPanel.draw(context, this.leftPos, this.topPos, VanillaPanel.SIX);
 		center(context, "gui.tacz_gun_level.group_core",
 				this.leftPos + SynthesisMenu.GROUP_CORE_CENTER, this.topPos + 20, TEXT);
 		center(context, "gui.tacz_gun_level.group_install",
@@ -56,6 +53,15 @@ public class SynthesisMenuScreen extends AbstractContainerScreen<SynthesisMenu> 
 	public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
 		super.render(context, mouseX, mouseY, delta);
 		renderTooltip(context, mouseX, mouseY);
+	}
+
+	/** 标题与「物品栏」默认画 0x404040，在钢底上不可读，翻成浅色。
+	 *  背包标题拿 translatable 而不是读父类字段：那个字段在这套映射里不可见。 */
+	@Override
+	protected void renderLabels(GuiGraphics context, int mouseX, int mouseY) {
+		context.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, TEXT, false);
+		context.drawString(this.font, Component.translatable("container.inventory"),
+				this.inventoryLabelX, this.inventoryLabelY, TEXT_DIM, false);
 	}
 
 	private void center(GuiGraphics context, String key, int centerX, int y, int color) {

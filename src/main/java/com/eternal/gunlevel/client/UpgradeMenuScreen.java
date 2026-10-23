@@ -11,14 +11,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.network.chat.Component;
 
 /**
- * 枪械升级台界面：原版箱子底图（自定义区平铺空白带，槽框另外补画），
+ * 枪械升级台界面：深色枪钢面板（槽位烘焙在贴图里），
  * 上半区放等级/材料提示，一排三个槽位下方带小标签。
  */
 public class UpgradeMenuScreen extends AbstractContainerScreen<UpgradeMenu> {
-	private static final int TEXT = 0x404040;
-	private static final int TEXT_DIM = 0x6C6C6C;
-	private static final int TEXT_OK = 0x3F6E2E;
-	private static final int TEXT_LACK = 0x9C3A2E;
+	private static final int TEXT = VanillaPanel.TEXT;
+	private static final int TEXT_DIM = VanillaPanel.TEXT_DIM;
+	private static final int TEXT_OK = VanillaPanel.TEXT_OK;
+	private static final int TEXT_LACK = VanillaPanel.TEXT_BAD;
 
 	public UpgradeMenuScreen(UpgradeMenu menu, Inventory inventory, Component title) {
 		super(menu, inventory, title);
@@ -29,10 +29,7 @@ public class UpgradeMenuScreen extends AbstractContainerScreen<UpgradeMenu> {
 
 	@Override
 	protected void renderBg(GuiGraphics context, float delta, int mouseX, int mouseY) {
-		VanillaPanel.draw(context, this.leftPos, this.topPos);
-		VanillaPanel.slotFrame(context, this.leftPos, this.topPos, UpgradeMenu.SLOT_GUN_X, UpgradeMenu.SLOT_Y);
-		VanillaPanel.slotFrame(context, this.leftPos, this.topPos, UpgradeMenu.SLOT_MAT_X, UpgradeMenu.SLOT_Y);
-		VanillaPanel.slotFrame(context, this.leftPos, this.topPos, UpgradeMenu.SLOT_RESULT_X, UpgradeMenu.SLOT_Y);
+		VanillaPanel.draw(context, this.leftPos, this.topPos, VanillaPanel.UPGRADE);
 
 		ItemStack gun = this.menu.container.getItem(UpgradeMenu.SLOT_GUN);
 		int level = gun.isEmpty() ? 0 : GunLevelData.getLevel(gun);
@@ -67,6 +64,15 @@ public class UpgradeMenuScreen extends AbstractContainerScreen<UpgradeMenu> {
 		super.render(context, mouseX, mouseY, delta);
 		// 1.20.1 的 AbstractContainerScreen#render 不会自己画悬停提示
 		renderTooltip(context, mouseX, mouseY);
+	}
+
+	/** 标题与「物品栏」默认画 0x404040，在钢底上不可读，翻成浅色。
+	 *  背包标题拿 translatable 而不是读父类字段：那个字段在这套映射里不可见。 */
+	@Override
+	protected void renderLabels(GuiGraphics context, int mouseX, int mouseY) {
+		context.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, TEXT, false);
+		context.drawString(this.font, Component.translatable("container.inventory"),
+				this.inventoryLabelX, this.inventoryLabelY, TEXT_DIM, false);
 	}
 
 	private void center(GuiGraphics context, String key, int centerX, int y, int color) {

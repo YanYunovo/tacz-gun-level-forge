@@ -1,51 +1,52 @@
 package com.eternal.gunlevel.client;
 
+import com.eternal.gunlevel.GunLevelMod;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * 用原版箱子贴图打底的面板。generic_54 不能整张直接铺：它自带 6 排 9 列的槽位底框，
- * 排布和我们自定义槽位对不上，铺出来就是一大片错位的空网格。
- * 所以照原版自己的拼法分三段画，中间自定义区用贴图里那段没有槽框的空白带平铺，
- * 边框和底色都是原版像素，不会像 fill 那样把侧边框啃掉。
+ * 深色枪钢面板（2026-10-23 用户选型定稿，贴图由 Fabric 仓库的
+ * tools/make_gui_textures.py 生成并同步到本仓库 resources）：
+ * 每个界面一张 176x168 的整图，槽位底框、背包槽、黄铜标记都烘焙在贴图里，运行时一铺即可。
+ * 只有芯片自选的网格要按实际芯片数动态补框 —— 从贴图右上角的备用槽格 (200,8) 取。
+ * 旧版拿原版 generic_54 三段拼法的做法已弃用（用户嫌像大箱子）。
  */
 final class VanillaPanel {
-	private static final ResourceLocation CHEST_TEXTURE =
-			new ResourceLocation("minecraft", "textures/gui/container/generic_54.png");
-	/** 与原版三行箱子（114 + 18*3）完全一致 */
+	/** 深底上的文字色：原版 0x404040 那套深灰在钢底上不可读，全部翻成浅色 */
+	static final int TEXT = 0xE4E7EC;
+	static final int TEXT_DIM = 0xA8AEB9;
+	static final int TEXT_OK = 0x8CD973;
+	static final int TEXT_BAD = 0xF08A75;
+
+	/** 与原版三行箱子（114 + 18*3）完全一致，所以背包槽位坐标不用动 */
 	static final int WIDTH = 176;
 	static final int HEIGHT = 168;
-	/** 自定义槽位区：上段结束处 ~ 下段（玩家背包）开始处 */
-	static final int BODY_TOP = 17;
-	static final int BODY_BOTTOM = HEIGHT - 97;
-	/** 贴图里 v=125 起是背包标题上方那段空白：只有边框和底色，没有槽框 */
-	private static final int STRIP_V = 125;
-	private static final int STRIP_HEIGHT = 14;
-	/** 原版槽位底框在贴图里的位置（一格 18x18） */
-	private static final int FRAME_U = 7;
-	private static final int FRAME_V = 17;
+
+	/** 三张界面贴图（assets/tacz_gun_level/textures/gui/ 下） */
+	static final ResourceLocation UPGRADE = texture("machine_upgrade");
+	static final ResourceLocation SIX = texture("machine_six");
+	static final ResourceLocation SELECT = texture("chip_select");
 
 	private VanillaPanel() {
 	}
 
-	static void draw(GuiGraphics context, int x, int y) {
-		context.blit(CHEST_TEXTURE, x, y, 0, 0, WIDTH, BODY_TOP);
-		for (int dy = BODY_TOP; dy < BODY_BOTTOM; dy += STRIP_HEIGHT) {
-			context.blit(CHEST_TEXTURE, x, y + dy, 0, STRIP_V,
-					WIDTH, Math.min(STRIP_HEIGHT, BODY_BOTTOM - dy));
-		}
-		context.blit(CHEST_TEXTURE, x, y + BODY_BOTTOM, 0, 126, WIDTH, 96);
+	private static ResourceLocation texture(String name) {
+		return new ResourceLocation(GunLevelMod.MOD_ID, "textures/gui/" + name + ".png");
 	}
 
-	/** 1.20.1 的 AbstractContainerScreen 不给空槽画框，自定义槽位要自己补一格 */
-	static void slotFrame(GuiGraphics context, int x, int y, int slotX, int slotY) {
-		context.blit(CHEST_TEXTURE, x + slotX - 1, y + slotY - 1, FRAME_U, FRAME_V, 18, 18);
+	static void draw(GuiGraphics context, int x, int y, ResourceLocation texture) {
+		context.blit(texture, x, y, 0, 0, WIDTH, HEIGHT);
+	}
+
+	/** 芯片自选的动态槽格：从贴图 (200,8) 那格备用槽框取 18x18 */
+	static void slotFrame(GuiGraphics context, ResourceLocation texture, int x, int y, int slotX, int slotY) {
+		context.blit(texture, x + slotX - 1, y + slotY - 1, 200, 8, 18, 18);
 	}
 
 	static void center(GuiGraphics context, Component text, net.minecraft.client.gui.Font renderer,
 			int centerX, int y, int color) {
-		// 浅灰底上用阴影会把中文字形糊成一片，一律不画阴影
+		// 深色底上阴影会把中文字形糊成一片，一律不画阴影
 		context.drawString(renderer, text, centerX - renderer.width(text) / 2, y, color, false);
 	}
 }
