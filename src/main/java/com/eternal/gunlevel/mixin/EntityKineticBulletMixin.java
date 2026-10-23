@@ -464,6 +464,11 @@ public abstract class EntityKineticBulletMixin {
 			scaled *= 1.0F + (float) RhythmState.bonus(this.gunlevel$shooter,
 					this.gunlevel$shooter.level().getGameTime());
 		}
+		// 紫芯片·勇者无惧：+20% 伤害。代价（受伤放大 15%）在 LivingGuards 的 LivingHurtEvent 里，
+		// 两边都只认主手这把枪，所以收益与代价天然对称
+		if (this.gunlevel$chips.contains(Chip.FEARLESS)) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleFearlessDamage;
+		}
 		// 狩猎时刻：标记期间攒够 15 次命中就给一档通用伤害加成（跟着标记走，切枪/脱战就没了）
 		if (this.gunlevel$hunt && this.gunlevel$shooter != null) {
 			double bonus = HuntState.damageBonus(this.gunlevel$shooter,

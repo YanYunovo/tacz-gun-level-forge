@@ -224,6 +224,11 @@ public class TacticalChipItem extends Item {
 		} else if (chip == Chip.UNSTOPPABLE) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.unstoppable",
 					percent(c.chipPurpleUnstoppableHealthRatio), percent(c.chipPurpleUnstoppableCrit)));
+		} else if (chip == Chip.FEARLESS) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fearless.1",
+					percent(c.chipPurpleFearlessDamageTaken)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.fearless.2",
+					percent(c.chipPurpleFearlessDamage)));
 		}
 	}
 

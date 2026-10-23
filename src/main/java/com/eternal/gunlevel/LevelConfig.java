@@ -332,6 +332,10 @@ public class LevelConfig {
 	public double chipPurpleUnstoppableHealthRatio = 0.60;
 	/** 紫芯片·无坚不摧：对该目标的暴击率加值（同一枚骰子只抬高及格线，不补掷） */
 	public double chipPurpleUnstoppableCrit = 0.20;
+	/** 紫芯片·勇者无惧：主手持枪时的伤害加成 */
+	public double chipPurpleFearlessDamage = 0.20;
+	/** 紫芯片·勇者无惧：作为代价，受到的伤害也放大（护甲计算之前） */
+	public double chipPurpleFearlessDamageTaken = 0.15;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

@@ -27,6 +27,11 @@ public final class GunChipData {
 	private GunChipData() {
 	}
 
+	/** 这把枪上是不是装了这颗芯片：勇者无惧那类「手持才生效」的被动按主手这一件判 */
+	public static boolean holdsChip(ItemStack gun, Chip chip) {
+		return !gun.isEmpty() && get(gun).contains(chip);
+	}
+
 	public static EnumSet<Chip> get(ItemStack gun) {
 		EnumSet<Chip> chips = EnumSet.noneOf(Chip.class);
 		if (gun.isEmpty()) {

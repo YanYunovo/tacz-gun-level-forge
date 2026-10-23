@@ -92,7 +92,12 @@ public enum Chip {
 	 * 骰子在出膛那一刻就掷好了（存的是骰值），命中时只对高血量目标把及格线抬高，
 	 * 不补掷第二次 —— 免得一次命中吃两次概率。
 	 */
-	UNSTOPPABLE(ChipTier.PURPLE);
+	UNSTOPPABLE(ChipTier.PURPLE),
+	/**
+	 * 勇者无惧：拿收益换风险的攻防互换芯片 —— 主手持着装了它的枪时，这一把枪的伤害 +20%，
+	 * 同时射手受到的伤害也 +15%（护甲计算之前放大，所以厚甲能吃掉一部分代价）。
+	 */
+	FEARLESS(ChipTier.PURPLE);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -129,6 +134,7 @@ public enum Chip {
 			case FOCUSED_STRIKE -> "凝神打击";
 			case RHYTHM_SHOT -> "节奏射击";
 			case UNSTOPPABLE -> "无坚不摧";
+			case FEARLESS -> "勇者无惧";
 		};
 	}
 
