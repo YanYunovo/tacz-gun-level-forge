@@ -6,6 +6,7 @@ import com.eternal.gunlevel.menu.ChipSelectMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -35,12 +36,19 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 	/** 右边距两颗翻页键：24 宽正好贴到面板内侧（x=144~168） */
 	private static final int NAV_X = GRID_X + COLUMNS * CELL + 2;
 	private static final int NAV_WIDTH = 24;
+	/** 原版按钮的标准高度；CELL 22 里上下各留 1px */
+	private static final int NAV_HEIGHT = 20;
 	/** 页码那行落在网格与背包标题之间那点空档（y=64~73，标题在 74） */
 	private static final int PAGE_TEXT_Y = GRID_Y + VISIBLE_ROWS * CELL;
 
 	private final List<ChipButton> choices = new ArrayList<>();
-	private final PageButton previous;
-	private final PageButton next;
+	/** 原版样式的文字按钮（跟「设置」那种同款），只有一页以上才出现，翻到头自己变灰 */
+	private final Button previous = Button.builder(
+			Component.translatable("container.tacz_gun_level.chip_select_prev"),
+			button -> turnPage(-1)).bounds(0, 0, NAV_WIDTH, NAV_HEIGHT).build();
+	private final Button next = Button.builder(
+			Component.translatable("container.tacz_gun_level.chip_select_next"),
+			button -> turnPage(1)).bounds(0, 0, NAV_WIDTH, NAV_HEIGHT).build();
 	private int page;
 
 	public ChipSelectScreen(ChipSelectMenu menu, Inventory inventory, Component title) {
@@ -48,8 +56,6 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 		this.imageWidth = VanillaPanel.WIDTH;
 		this.imageHeight = VanillaPanel.HEIGHT;
 		this.inventoryLabelY = VanillaPanel.HEIGHT - 94;
-		this.previous = new PageButton(this, "prev", -1);
-		this.next = new PageButton(this, "next", 1);
 	}
 
 	private int pages() {
@@ -84,8 +90,14 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 			button.active = shown;
 		}
 		boolean paged = pages() > 1;
-		previous.moveTo(this.leftPos + NAV_X, this.topPos + GRID_Y, paged && page > 0);
-		next.moveTo(this.leftPos + NAV_X, this.topPos + GRID_Y + CELL, paged && page < pages() - 1);
+		// 贴在网格右侧一列，两颗各占一格、上下各留 1px；翻到头变灰，只有一页就整个藏掉
+		previous.visible = next.visible = paged;
+		previous.active = paged && page > 0;
+		next.active = paged && page < pages() - 1;
+		previous.setX(this.leftPos + NAV_X);
+		previous.setY(this.topPos + GRID_Y + (CELL - NAV_HEIGHT) / 2);
+		next.setX(this.leftPos + NAV_X);
+		next.setY(this.topPos + GRID_Y + CELL + (CELL - NAV_HEIGHT) / 2);
 	}
 
 	@Override
@@ -161,51 +173,6 @@ public class ChipSelectScreen extends AbstractContainerScreen<ChipSelectMenu> {
 		if (target != page) {
 			page = target;
 			layout();
-		}
-	}
-
-	/**
-	 * 翻页键：只有一页以上才出现，翻到头就自己变灰（省得点了没反应看着像坏了）。
-	 * 没用原版的 {@code Button}：那颗按钮默认按宽度裁字，24px 塞不下「上页」两个字加边距，
-	 * 而这里要的本来就是「和槽框一个味」的小方块，自己画反而不用跟裁字规则较劲。
-	 */
-	private static class PageButton extends AbstractWidget {
-		private final ChipSelectScreen screen;
-		private final int direction;
-		private final Component label;
-
-		PageButton(ChipSelectScreen screen, String name, int direction) {
-			super(0, 0, NAV_WIDTH, CELL,
-					Component.translatable("container.tacz_gun_level.chip_select_" + name));
-			this.screen = screen;
-			this.direction = direction;
-			this.label = this.getMessage();
-		}
-
-		void moveTo(int x, int y, boolean enabled) {
-			setX(x);
-			setY(y);
-			visible = screen.pages() > 1;
-			active = enabled;
-		}
-
-		@Override
-		protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
-			// 槽框在 24x22 的键里居中（slotFrame 画在 x+slotX-1），文字中心正好也是框中心
-			VanillaPanel.slotFrame(context, this.getX(), this.getY(), 4, 3);
-			int color = this.active ? (this.isHovered() ? 0x202020 : 0x404040) : 0xB4B4B4;
-			context.drawCenteredString(Minecraft.getInstance().font, this.label,
-					this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, color);
-		}
-
-		@Override
-		public void onClick(double mouseX, double mouseY) {
-			screen.turnPage(direction);
-		}
-
-		@Override
-		protected void updateWidgetNarration(NarrationElementOutput out) {
-			this.defaultButtonNarrationText(out);
 		}
 	}
 }
