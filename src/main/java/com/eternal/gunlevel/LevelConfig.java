@@ -355,6 +355,43 @@ public class LevelConfig {
 	public double chipPurpleNimbleSpeed = 0.20;
 	/** 紫芯片·灵动步伐：作为代价扣掉的护甲点数（ADDITION，属性下限 0，穿不满就归零） */
 	public double chipPurpleNimbleArmorPenalty = 4.0;
+
+	/** 紫芯片·背水一战：射手血量比例低于此值才吃加成 */
+	public double chipPurpleLastStandHealthRatio = 0.30;
+	/** 紫芯片·背水一战：加成幅度 */
+	public double chipPurpleLastStandDamage = 0.20;
+	/** 紫芯片·远程打击：超过这个距离才算远距（格），口径与抵近射击一致：命中时射手到目标的直线距离 */
+	public double chipPurpleLongShotRange = 15.0;
+	/** 紫芯片·远程打击：远距那一发的伤害加成 */
+	public double chipPurpleLongShotDamage = 0.15;
+	/** 紫芯片·乘胜追击：击杀后这个秒数内的命中吃加成 */
+	public double chipPurpleSpreeSeconds = 5.0;
+	/** 紫芯片·乘胜追击：加成幅度 */
+	public double chipPurpleSpreeDamage = 0.15;
+	/** 紫芯片·先发制人：命中才算进入战斗；连续这个秒数没命中算脱战，再命中重新进入，加成也只覆盖进入后的这个秒数 */
+	public double chipPurpleOpeningSeconds = 5.0;
+	/** 紫芯片·先发制人：加成幅度 */
+	public double chipPurpleOpeningDamage = 0.25;
+	/** 紫芯片·屏息凝神：连续静止满这个秒数才吃加成（坐标有变就算动过，含走路/跳跃/下落/载具/传送，转头不算） */
+	public double chipPurpleHoldStillSeconds = 3.0;
+	/** 紫芯片·屏息凝神：加成幅度 */
+	public double chipPurpleHoldStillDamage = 0.15;
+	/** 紫芯片·精打细算：弹匣余量（打完这一发后）不高于弹匣容量的这个比例才吃加成（比例乘容量向下取整） */
+	public double chipPurpleLowMagRatio = 0.30;
+	/** 紫芯片·精打细算：加成幅度 */
+	public double chipPurpleLowMagDamage = 0.20;
+	/** 紫芯片·不破誓约：受到伤害的减免比例（挂在勇者无惧同一个注入点上，两颗同装时乘法叠加） */
+	public double chipPurpleOathReduction = 0.15;
+	/** 紫芯片·不破誓约：嘲讽半径（格）——圈内正把某个玩家当目标的敌对生物会把仇恨抢到装备者身上 */
+	public double chipPurpleOathTauntRadius = 16.0;
+	/** 紫芯片·硬化护甲：主手持枪时的护甲加值（ADDITION，两端各挂一份） */
+	public double chipPurpleHardenedArmor = 4.0;
+	/** 紫芯片·抱团取暖：光环半径（格），以主手持枪的装备者为圆心 */
+	public double chipPurpleTeamworkRadius = 5.0;
+	/** 紫芯片·抱团取暖：圈内每多一名其他玩家的加成 */
+	public double chipPurpleTeamworkPerPlayer = 0.08;
+	/** 紫芯片·抱团取暖：加成上限 */
+	public double chipPurpleTeamworkCap = 0.24;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

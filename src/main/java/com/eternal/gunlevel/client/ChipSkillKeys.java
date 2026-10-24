@@ -52,7 +52,7 @@ public final class ChipSkillKeys {
 		boolean down = client.options.keyJump.isDown();
 		boolean pressed = down && !jumpWasDown;
 		jumpWasDown = down;
-		if (client.screen != null || !WindGuardState.passiveActive(client.player)) {
+		if (client.screen != null || !canAirJump(client.player)) {
 			return;
 		}
 		if (client.player.onGround()) {
@@ -71,5 +71,15 @@ public final class ChipSkillKeys {
 		client.player.setDeltaMovement(velocity.x(), AIR_JUMP_VELOCITY, velocity.z());
 		client.player.hurtMarked = true;
 		client.player.fallDistance = 0.0F;
+	}
+
+	/** 二段跳的两颗芯片：灵风之祝（风元素枪）或紫芯片·风灵祝福（任意枪，只看主手） */
+	private static boolean canAirJump(net.minecraft.world.entity.LivingEntity entity) {
+		if (WindGuardState.passiveActive(entity)) {
+			return true;
+		}
+		return entity instanceof net.minecraft.world.entity.player.Player player
+				&& com.eternal.gunlevel.item.GunChipData.holdsChip(player.getMainHandItem(),
+						com.eternal.gunlevel.effect.Chip.WIND_GRACE);
 	}
 }

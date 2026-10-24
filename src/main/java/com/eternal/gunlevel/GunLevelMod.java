@@ -18,10 +18,15 @@ import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.effect.NimbleState;
+import com.eternal.gunlevel.effect.OpeningState;
+import com.eternal.gunlevel.effect.OathState;
 import com.eternal.gunlevel.effect.QuickeningEffect;
 import com.eternal.gunlevel.effect.RhythmState;
+import com.eternal.gunlevel.effect.SpreeState;
+import com.eternal.gunlevel.effect.StillnessState;
 import com.eternal.gunlevel.effect.ThunderVoiceState;
 import com.eternal.gunlevel.effect.WindGuardState;
+import com.eternal.gunlevel.effect.HardenedState;
 import com.eternal.gunlevel.entity.RockConstructEntity;
 import com.eternal.gunlevel.item.BrokenChipItem;
 import com.eternal.gunlevel.item.ChipPackItem;
@@ -327,6 +332,11 @@ public class GunLevelMod {
 		FervorState.tick(event.getServer());
 		RhythmState.tick(event.getServer());
 		NimbleState.tick(event.getServer());
+		SpreeState.tick(event.getServer());
+		OpeningState.tick(event.getServer());
+		StillnessState.tick(event.getServer());
+		OathState.tick(event.getServer());
+		HardenedState.tick(event.getServer());
 	}
 
 	private void onServerStopping(ServerStoppingEvent event) {
@@ -341,6 +351,10 @@ public class GunLevelMod {
 		FervorState.clear();
 		RhythmState.clear();
 		NimbleState.clear();
+		SpreeState.clear();
+		OpeningState.clear();
+		StillnessState.clear();
+		HardenedState.clear();
 		RockConstructEntity.clear();
 	}
 

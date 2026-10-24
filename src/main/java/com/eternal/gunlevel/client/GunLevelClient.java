@@ -51,6 +51,9 @@ public final class GunLevelClient {
 		// 灵动步伐：客户端也挂同一对修正，护甲那份只影响 HUD，但少了它就会「图标满甲、实际少吃 4 点」
 		GunLevelNetwork.onNimble = on -> com.eternal.gunlevel.effect.NimbleState.applyClient(
 				Minecraft.getInstance().player, on);
+		// 硬化护甲：同一个形状，护甲 +4 的两端同步
+		GunLevelNetwork.onHardened = on -> com.eternal.gunlevel.effect.HardenedState.applyClient(
+				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onRoarSpeed = on -> FlameRoarState.applySpeedClient(
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onHuntSpeed = on -> HuntState.applySpeedClient(

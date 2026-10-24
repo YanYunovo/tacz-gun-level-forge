@@ -36,6 +36,8 @@ public final class GunLevelNetwork {
 	public static Consumer<Boolean> onHuntSpeed;
 	/** S2C：灵动步伐那对修正（移速 +20% / 护甲 −4）的两端同步 */
 	public static Consumer<Boolean> onNimble;
+	/** S2C：硬化护甲那档护甲 +4 的两端同步 */
+	public static Consumer<Boolean> onHardened;
 
 	/** S2C：经验条上方那行小字（哪颗芯片 + 哪种文案） */
 	public record ChipHint(int chipOrdinal, int kind) {
@@ -81,6 +83,10 @@ public final class GunLevelNetwork {
 
 	/** S2C：灵动步伐的移速与护甲修正，一个布尔管一对（两者必须同时给、同时收） */
 	public record NimbleSync(boolean on) {
+	}
+
+	/** S2C：硬化护甲的护甲修正 */
+	public record HardenedSync(boolean on) {
 	}
 
 	private GunLevelNetwork() {
@@ -179,6 +185,17 @@ public final class GunLevelNetwork {
 					});
 					ctx.get().setPacketHandled(true);
 				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(8, HardenedSync.class,
+				(msg, buf) -> buf.writeBoolean(msg.on()),
+				buf -> new HardenedSync(buf.readBoolean()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onHardened != null) {
+							onHardened.accept(msg.on());
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendHint(ServerPlayer player, int chipOrdinal, int kind) {
@@ -212,5 +229,9 @@ public final class GunLevelNetwork {
 
 	public static void sendNimble(ServerPlayer player, boolean on) {
 		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new NimbleSync(on));
+	}
+
+	public static void sendHardened(ServerPlayer player, boolean on) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new HardenedSync(on));
 	}
 }

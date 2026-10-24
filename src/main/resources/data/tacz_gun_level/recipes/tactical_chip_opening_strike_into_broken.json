@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "tacz_gun_level:tactical_chip_opening_strike"
+    }
+  ],
+  "result": {
+    "item": "tacz_gun_level:broken_purple_chip",
+    "count": 4
+  }
+}

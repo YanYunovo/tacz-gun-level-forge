@@ -249,6 +249,43 @@ public class TacticalChipItem extends Item {
 					number(c.chipPurpleNimbleArmorPenalty)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.nimble_step.2",
 					percent(c.chipPurpleNimbleSpeed)));
+		} else if (chip == Chip.LAST_STAND) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.last_stand",
+					percent(c.chipPurpleLastStandHealthRatio), percent(c.chipPurpleLastStandDamage)));
+		} else if (chip == Chip.LONG_SHOT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.long_shot",
+					number(c.chipPurpleLongShotRange), percent(c.chipPurpleLongShotDamage)));
+		} else if (chip == Chip.KILLING_SPREE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.killing_spree",
+					number(c.chipPurpleSpreeSeconds), percent(c.chipPurpleSpreeDamage)));
+		} else if (chip == Chip.OPENING_STRIKE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.opening_strike",
+					number(c.chipPurpleOpeningSeconds), percent(c.chipPurpleOpeningDamage)));
+		} else if (chip == Chip.HOLD_BREATH) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hold_breath.1",
+					number(c.chipPurpleHoldStillSeconds), percent(c.chipPurpleHoldStillDamage)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hold_breath.2"));
+		} else if (chip == Chip.BUDGET_SHOT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.budget_shot",
+					percent(c.chipPurpleLowMagRatio), percent(c.chipPurpleLowMagDamage)));
+		} else if (chip == Chip.WIND_PACT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_pact"));
+		} else if (chip == Chip.WIND_GRACE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.wind_grace"));
+		} else if (chip == Chip.STEADFAST_OATH) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.steadfast_oath.1",
+					percent(c.chipPurpleOathReduction)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.steadfast_oath.2"));
+		} else if (chip == Chip.HARDENED_ARMOR) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.hardened_armor",
+					number(c.chipPurpleHardenedArmor)));
+		} else if (chip == Chip.TEAMWORK) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.teamwork.1",
+					number(c.chipPurpleTeamworkRadius)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.teamwork.2",
+					percent(c.chipPurpleTeamworkPerPlayer)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.teamwork.3",
+					percent(c.chipPurpleTeamworkCap)));
 		}
 	}
 

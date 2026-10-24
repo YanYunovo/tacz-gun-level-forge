@@ -32,22 +32,32 @@ public final class LivingGuards {
 	 * <p>{@code LivingHurtEvent} 在 {@code LivingEntity#hurt} 开头、护甲与魔咒减免**之前**触发
 	 * （字节码里紧跟 isInvulnerableTo 就是 ForgeHooks.onLivingHurt），Fabric 版注入的正是同一个方法
 	 * 的同一个位置（yarn 里那方法叫 {@code damage}），所以两边放大的量一致。
+	 * 紫芯片·不破誓约的 15% 减免也挂在这里（同一个事件做减法，两颗同装时乘法叠加）。
 	 */
 	private static void onBravery(LivingHurtEvent event) {
 		if (!(event.getEntity() instanceof Player player)) {
 			return;
 		}
 		ItemStack gun = player.getMainHandItem();
-		if (!com.eternal.gunlevel.item.GunChipData.holdsChip(gun, Chip.FEARLESS)) {
-			return;
+		float amount = event.getAmount();
+		if (com.eternal.gunlevel.item.GunChipData.holdsChip(gun, Chip.FEARLESS)) {
+			amount *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleFearlessDamageTaken;
 		}
-		event.setAmount(event.getAmount()
-				* (1.0F + (float) GunLevelMod.CONFIG.chipPurpleFearlessDamageTaken));
+		if (com.eternal.gunlevel.item.GunChipData.holdsChip(gun, Chip.STEADFAST_OATH)) {
+			amount *= 1.0F - (float) GunLevelMod.CONFIG.chipPurpleOathReduction;
+		}
+		event.setAmount(amount);
 	}
 
-	/** 灵风之祝：手持装着这颗芯片的风枪时不掉血。整个事件取消，连伤害源都不产生 */
+	/**
+	 * 免疫摔落伤害的两颗芯片：灵风之祝（风元素枪 + 芯片，见 {@link WindGuardState#passiveActive}）
+	 * 与紫芯片·风灵契约（只要主手持着装了它的枪，不看元素）。整个事件取消，连伤害源都不产生。
+	 */
 	private static void onFall(LivingFallEvent event) {
-		if (WindGuardState.passiveActive(event.getEntity())) {
+		if (WindGuardState.passiveActive(event.getEntity())
+				|| (event.getEntity() instanceof Player player
+						&& com.eternal.gunlevel.item.GunChipData.holdsChip(player.getMainHandItem(),
+								Chip.WIND_PACT))) {
 			event.setCanceled(true);
 		}
 	}

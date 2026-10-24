@@ -11,7 +11,11 @@ import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
+import com.eternal.gunlevel.effect.OpeningState;
 import com.eternal.gunlevel.effect.RhythmState;
+import com.eternal.gunlevel.effect.SpreeState;
+import com.eternal.gunlevel.effect.StillnessState;
+import com.eternal.gunlevel.effect.TeamworkState;
 import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.item.GunCoreData;
@@ -107,6 +111,9 @@ public abstract class EntityKineticBulletMixin {
 	/** 高能弹匣：是否装了、这一发打出时弹匣余量是否充足（常驻条件，不掷骰） */
 	@Unique
 	private boolean gunlevel$highMag;
+	/** 精打细算：弹匣见底（打完这发后不高于容量的 30%，向下取整）——出膛定格，与高能弹匣同一个判据时机 */
+	@Unique
+	private boolean gunlevel$lowMag;
 	/** 极光追击：是否装了（命中记账按射手累计，见 AuroraState） */
 	@Unique
 	private boolean gunlevel$aurora;
@@ -221,6 +228,8 @@ public abstract class EntityKineticBulletMixin {
 		// 高能弹匣：余量判定在这发子弹生成时定格。TACZ 的 LivingEntityShoot 先扣弹再异步建子弹实体，
 		// 所以这里读到的已经是减去这一发后的数量，配 >= 才等于玩家口径的「开火时弹匣里多于 20 发」。
 		this.gunlevel$highMag = chips.contains(Chip.HIGH_MAG) && gunlevel$hasAmmoMargin(gunStack);
+		this.gunlevel$lowMag = chips.contains(Chip.BUDGET_SHOT)
+				&& gunlevel$isLowMag(gunStack, gunData);
 		this.gunlevel$aurora = chips.contains(Chip.AURORA);
 		// 极光匣的标记在那把枪的 NBT 上，此刻定格：这一匣打出去的命中不参与攒下一匣
 		this.gunlevel$auroraMag = GunAuroraData.isOn(gunStack);
@@ -371,6 +380,14 @@ public abstract class EntityKineticBulletMixin {
 			// 触发强攻那发同时走穿甲和增伤：增伤乘在整段伤害上，两段都算到
 			scaled *= (float) GunLevelMod.CONFIG.chipArmorPierceMultiplier;
 		}
+		// 紫芯片·抱团取暖：光环跟人不跟枪（射手自己不用装），挂在枪械芯片链外，
+		// 免得没升级的枪吃不到；也不能跟着强击连发的额外攻击再乘一遍（那发的伤害已含光环）
+		if (!this.gunlevel$barraging && this.gunlevel$shooter != null) {
+			double team = TeamworkState.bonus(this.gunlevel$shooter);
+			if (team > 0) {
+				scaled *= 1.0F + (float) team;
+			}
+		}
 		return scaled;
 	}
 
@@ -405,6 +422,26 @@ public abstract class EntityKineticBulletMixin {
 		return gun != null && gun.getCurrentAmmoCount(gunStack) >= GunLevelMod.CONFIG.chipHighMagAmmo;
 	}
 
+	/** 精打细算的余量口径：打完这一发后的弹匣数（构造时读到的已扣本发）不高于容量的配置比例，比例乘容量向下取整。
+	 *  Forge 的子弹构造器直接收 GunData，容量就在手边，不用回枪数据索引里查。 */
+	@Unique
+	private static boolean gunlevel$isLowMag(ItemStack gunStack, GunData gunData) {
+		if (gunStack.isEmpty() || gunData == null) {
+			return false;
+		}
+		IGun gun = IGun.getIGunOrNull(gunStack);
+		if (gun == null) {
+			return false;
+		}
+		int capacity = com.tacz.guns.util.AttachmentDataUtils
+				.getAmmoCountWithAttachment(gunStack, gunData);
+		if (capacity <= 0) {
+			return false;
+		}
+		return gun.getCurrentAmmoCount(gunStack)
+				<= (int) Math.floor(capacity * GunLevelMod.CONFIG.chipPurpleLowMagRatio);
+	}
+
 	@Unique
 	private boolean gunlevel$rollFakeHead() {
 		if (this.gunlevel$headshot || this.gunlevel$shooter == null) {
@@ -424,6 +461,14 @@ public abstract class EntityKineticBulletMixin {
 		double range = GunLevelMod.CONFIG.chipPurpleCloseRange;
 		return this.gunlevel$shooter != null && this.gunlevel$hitTarget != null
 				&& this.gunlevel$hitTarget.distanceToSqr(this.gunlevel$shooter) <= range * range;
+	}
+
+	/** 远程打击的距离口径：同一个判据的反面，超过配置格数才算远距 */
+	@Unique
+	private boolean gunlevel$beyondLongRange() {
+		double range = GunLevelMod.CONFIG.chipPurpleLongShotRange;
+		return this.gunlevel$shooter != null && this.gunlevel$hitTarget != null
+				&& this.gunlevel$hitTarget.distanceToSqr(this.gunlevel$shooter) > range * range;
 	}
 
 	/** 无坚不摧的血量口径：目标当前生命 / 上限。打的不是活物就当 0，不触发 */
@@ -536,6 +581,42 @@ public abstract class EntityKineticBulletMixin {
 			if (bonus > 0) {
 				scaled *= 1.0F + (float) bonus;
 			}
+		}
+		// 紫芯片第二批（2026-10-24）：六个「条件成立的定值一档」，全部连乘
+		// 背水一战：凝神的镜像，血量低于阈值才吃
+		if (this.gunlevel$chips.contains(Chip.LAST_STAND)
+				&& gunlevel$shooterHealthRatio() < GunLevelMod.CONFIG.chipPurpleLastStandHealthRatio) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleLastStandDamage;
+		}
+		// 远程打击：抵近的镜像，超过配置距离才吃
+		if (this.gunlevel$chips.contains(Chip.LONG_SHOT) && gunlevel$beyondLongRange()) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleLongShotDamage;
+		}
+		// 乘胜追击：击杀后的窗口里
+		if (this.gunlevel$chips.contains(Chip.KILLING_SPREE) && this.gunlevel$shooter != null) {
+			double spree = SpreeState.bonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime());
+			if (spree > 0) {
+				scaled *= 1.0F + (float) spree;
+			}
+		}
+		// 先发制人：进入战斗后的窗口里（命中才算进入战斗，与愈战愈勇同口径）
+		if (this.gunlevel$chips.contains(Chip.OPENING_STRIKE) && this.gunlevel$shooter != null) {
+			double opening = OpeningState.bonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime());
+			if (opening > 0) {
+				scaled *= 1.0F + (float) opening;
+			}
+		}
+		// 屏息凝神：连续静止满配置秒数（移动立即失效）
+		if (this.gunlevel$chips.contains(Chip.HOLD_BREATH)
+				&& StillnessState.isStill(this.gunlevel$shooter,
+						GunLevelMod.CONFIG.chipPurpleHoldStillSeconds)) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleHoldStillDamage;
+		}
+		// 精打细算：弹匣见底（出膛定格的条件）
+		if (this.gunlevel$lowMag) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleLowMagDamage;
 		}
 		// 烈焰咆哮：算打头的那发再吃一档按等级的增伤（概率判定已在 resolveHeadHit 里做掉了）
 		if (this.gunlevel$headHit) {
@@ -662,6 +743,13 @@ public abstract class EntityKineticBulletMixin {
 		}
 		// 强击连发的额外攻击是在这个方法内部递归进来的，飘字与粒子只在最外层那一次发，免得一行刷两遍
 		boolean outer = !this.gunlevel$barraging;
+		// 乘胜追击的击杀账与先发制人的战斗账：给每次外层命中记账（两颗芯片只在自己那把枪上读加成）
+		if (outer && target.level() instanceof ServerLevel) {
+			OpeningState.onHit(this.gunlevel$shooter, target.level().getGameTime());
+			if (target instanceof LivingEntity victim && !victim.isAlive()) {
+				SpreeState.onKill(this.gunlevel$shooter, target.level().getGameTime());
+			}
+		}
 		// 连环暴击：这发确实是暴击并且真的打中东西才开激化窗口，穿透多个目标也只开一次
 		if (this.gunlevel$crit && this.gunlevel$chainCrit && !this.gunlevel$chainCritProcced
 				&& target.level() instanceof ServerLevel) {
