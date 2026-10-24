@@ -251,11 +251,19 @@ public abstract class EntityKineticBulletMixin {
 		if (LevelScaling.currentLevel() <= 0) {
 			// 射击窗口内 BulletData 已给出缩放后的初速，不再重复乘
 			this.speed *= (float) LevelScaling.speedScale(level);
+			// 蓝·弹速改造：窗口外创建的子弹在这里补（窗口内由 BulletDataMixin 负责，两边互斥不会叠加）
+			if (this.gunlevel$chips.contains(Chip.BULLET_SPEED_MOD)) {
+				this.speed *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueBulletSpeed;
+			}
 		}
 
 		if (level >= 5 && GunLevelMod.CONFIG.lv5Effect == 1) {
 			this.pierce += 2;
 			this.isTracerAmmo = true;
+		}
+		// 蓝·穿透改造：固定追加段数，与 LV5 的永恒贯穿同字段相加（随生成数据同步到客户端）
+		if (this.gunlevel$chips.contains(Chip.PIERCE_MOD)) {
+			this.pierce += Math.max(0, GunLevelMod.CONFIG.chipBluePierce);
 		}
 		// 暴击：武器面板暴击率（改造基础 5% + LV5 15% + 连环暴击 2%×等级），一发子弹掷一次
 		double chance = LevelScaling.critChance(level, this.gunlevel$chainCrit);
@@ -374,12 +382,18 @@ public abstract class EntityKineticBulletMixin {
 	 * index 6 是 tacAttackEntity 里那个截断后的比例（局部表：1=目标、2=damage、3=伤害源对、
 	 * 4/5=两段各自的 DamageSource、6=clamp(armorIgnore,0,1) 即 r、7=1-r），
 	 * 挂在它唯一的赋值上（@At("STORE")），不碰 MC 符号，省得依赖 refmap。
+	 * 蓝·穿甲改造的常驻一档也在这里加：不掷骰、与武器自带穿甲相加，和破甲强攻的加值一起封顶在 1。
 	 */
 	@ModifyVariable(method = "tacAttackEntity", at = @At("STORE"), index = 6, remap = false)
 	private float gunlevel$forceArmorPierce(float ratio) {
-		return this.gunlevel$pierceProc
-				? Math.min(1.0F, ratio + (float) GunLevelMod.CONFIG.chipArmorPierceBonus)
-				: ratio;
+		float out = ratio;
+		if (this.gunlevel$chips.contains(Chip.ARMOR_PIERCE_MOD)) {
+			out += (float) GunLevelMod.CONFIG.chipBlueArmorPierce;
+		}
+		if (this.gunlevel$pierceProc) {
+			out += (float) GunLevelMod.CONFIG.chipArmorPierceBonus;
+		}
+		return Math.min(1.0F, out);
 	}
 
 	@Unique
@@ -598,6 +612,10 @@ public abstract class EntityKineticBulletMixin {
 		}
 		if (this.gunlevel$chips.contains(Chip.DAMAGE_MOD)) {
 			scale *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueDamage;
+		}
+		// 蓝·爆炸改造：定值一档，只管爆炸段
+		if (this.gunlevel$chips.contains(Chip.EXPLOSION_MOD)) {
+			scale *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueExplosion;
 		}
 		if (this.gunlevel$chips.contains(Chip.FEARLESS)) {
 			scale *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleFearlessDamage;

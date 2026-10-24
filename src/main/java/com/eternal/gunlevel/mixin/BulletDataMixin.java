@@ -1,6 +1,9 @@
 package com.eternal.gunlevel.mixin;
 
+import com.eternal.gunlevel.GunLevelMod;
+import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.LevelScaling;
+import com.eternal.gunlevel.item.GunChipData;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,8 +28,14 @@ public abstract class BulletDataMixin {
 	@Inject(method = "getSpeed", at = @At("RETURN"), cancellable = true, remap = false)
 	private void gunlevel$speed(CallbackInfoReturnable<Float> cir) {
 		int level = LevelScaling.currentLevel();
-		if (level > 0) {
-			cir.setReturnValue((float) (cir.getReturnValue() * LevelScaling.speedScale(level)));
+		double scale = level > 0 ? LevelScaling.speedScale(level) : 1.0;
+		// 蓝·弹速改造：定值一档（射击窗口带着射手，读主手那把枪；窗口外创建的子弹由构造器补）
+		net.minecraft.world.entity.LivingEntity shooter = LevelScaling.currentShooter();
+		if (shooter != null && GunChipData.get(shooter.getMainHandItem()).contains(Chip.BULLET_SPEED_MOD)) {
+			scale *= 1.0 + GunLevelMod.CONFIG.chipBlueBulletSpeed;
+		}
+		if (scale != 1.0) {
+			cir.setReturnValue((float) (cir.getReturnValue() * scale));
 		}
 	}
 }

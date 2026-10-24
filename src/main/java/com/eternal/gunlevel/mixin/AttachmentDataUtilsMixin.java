@@ -47,6 +47,10 @@ public abstract class AttachmentDataUtilsMixin {
 			scale *= GunLevelMod.CONFIG.chipAuroraMagMultiplier;
 		}
 		scale *= ThunderVoiceState.capacityScale(gun);
+		// 蓝·弹匣扩容：定值一档，与迅雷的减容量、极光的翻倍在同一条链上连乘
+		if (GunChipData.get(gun).contains(Chip.MAG_SIZE_MOD)) {
+			scale *= 1.0 + GunLevelMod.CONFIG.chipBlueMagSize;
+		}
 		if (scale == 1.0) {
 			return;
 		}

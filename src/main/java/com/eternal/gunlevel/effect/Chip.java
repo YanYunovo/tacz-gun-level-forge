@@ -102,7 +102,21 @@ public enum Chip {
 	 * 灵动步伐：主手持着装了它的枪时移动速度 +20%，代价是护甲值 −4（见 {@link NimbleState}）。
 	 * 收益与代价同时给、同时收，切走枪立刻还原，不留拖尾。
 	 */
-	NIMBLE_STEP(ChipTier.PURPLE);
+	NIMBLE_STEP(ChipTier.PURPLE),
+	/** 换弹改造：固定缩短 10% 换弹时间，不乘永恒改装等级 */
+	RELOAD_MOD(ChipTier.BLUE),
+	/** 弹匣扩容：固定提升 10% 主弹匣容量，不乘永恒改装等级（与极光翻倍、迅雷减容量同一条链连乘） */
+	MAG_SIZE_MOD(ChipTier.BLUE),
+	/** 散布改造：固定降低 10% 散布，不乘永恒改装等级 */
+	SPREAD_MOD(ChipTier.BLUE),
+	/** 弹速改造：固定提升 10% 子弹初速，不乘永恒改装等级 */
+	BULLET_SPEED_MOD(ChipTier.BLUE),
+	/** 穿甲改造：常驻无视 5% 原版护甲，不乘永恒改装等级（与武器自带穿甲、破甲强攻的加值相加） */
+	ARMOR_PIERCE_MOD(ChipTier.BLUE),
+	/** 爆炸改造：固定提升 10% 爆炸段伤害，不乘永恒改装等级 */
+	EXPLOSION_MOD(ChipTier.BLUE),
+	/** 穿透改造：固定追加 1 段穿透，不乘永恒改装等级（与 LV5 永恒贯穿同字段相加） */
+	PIERCE_MOD(ChipTier.BLUE);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -141,6 +155,13 @@ public enum Chip {
 			case UNSTOPPABLE -> "无坚不摧";
 			case FEARLESS -> "勇者无惧";
 			case NIMBLE_STEP -> "灵动步伐";
+			case RELOAD_MOD -> "换弹改造";
+			case MAG_SIZE_MOD -> "弹匣扩容";
+			case SPREAD_MOD -> "散布改造";
+			case BULLET_SPEED_MOD -> "弹速改造";
+			case ARMOR_PIERCE_MOD -> "穿甲改造";
+			case EXPLOSION_MOD -> "爆炸改造";
+			case PIERCE_MOD -> "穿透改造";
 		};
 	}
 

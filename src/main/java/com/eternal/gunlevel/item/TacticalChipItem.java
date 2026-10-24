@@ -206,6 +206,21 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.head_damage_mod", percent(c.chipBlueHeadDamage)));
 		} else if (chip == Chip.CRIT_DAMAGE_MOD) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.crit_damage_mod", percent(c.chipBlueCritDamage)));
+		} else if (chip == Chip.RELOAD_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.reload_mod", percent(c.chipBlueReload)));
+		} else if (chip == Chip.MAG_SIZE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.mag_size_mod", percent(c.chipBlueMagSize)));
+		} else if (chip == Chip.SPREAD_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.spread_mod", percent(c.chipBlueSpread)));
+		} else if (chip == Chip.BULLET_SPEED_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.bullet_speed_mod", percent(c.chipBlueBulletSpeed)));
+		} else if (chip == Chip.ARMOR_PIERCE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.armor_pierce_mod", percent(c.chipBlueArmorPierce)));
+		} else if (chip == Chip.EXPLOSION_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.explosion_mod", percent(c.chipBlueExplosion)));
+		} else if (chip == Chip.PIERCE_MOD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.pierce_mod",
+					String.valueOf(c.chipBluePierce)));
 		} else if (chip == Chip.CLOSE_QUARTERS) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.close_quarters.1",
 					number(c.chipPurpleCloseRange), percent(c.chipPurpleCloseDamage)));

@@ -312,6 +312,21 @@ public class LevelConfig {
 	public double chipBlueHeadDamage = 0.10;
 	/** 蓝芯片·暴击伤害改造：暴击伤害倍率的加值，定值不乘等级 */
 	public double chipBlueCritDamage = 0.10;
+
+	/** 蓝芯片·换弹改造：换弹时间缩短比例，定值不乘等级 */
+	public double chipBlueReload = 0.10;
+	/** 蓝芯片·弹匣扩容：主弹匣容量提升比例，定值不乘等级（与极光翻倍、迅雷减容量同一条链连乘，四舍五入取整） */
+	public double chipBlueMagSize = 0.10;
+	/** 蓝芯片·散布改造：散布降低比例，定值不乘等级 */
+	public double chipBlueSpread = 0.10;
+	/** 蓝芯片·弹速改造：子弹初速提升比例，定值不乘等级 */
+	public double chipBlueBulletSpeed = 0.10;
+	/** 蓝芯片·穿甲改造：常驻无视的原版护甲比例，定值不乘等级（与武器自带穿甲、破甲强攻的加值相加，封顶 100%） */
+	public double chipBlueArmorPierce = 0.05;
+	/** 蓝芯片·爆炸改造：重武器爆炸段伤害提升比例，定值不乘等级 */
+	public double chipBlueExplosion = 0.10;
+	/** 蓝芯片·穿透改造：追加的穿透段数，定值不乘等级 */
+	public int chipBluePierce = 1;
 	/** 紫芯片·抵近射击：算「近距」的距离（格），口径与势如破竹一致：命中时射手到目标的距离 */
 	public double chipPurpleCloseRange = 5.0;
 	/** 紫芯片·抵近射击：近距那一发的伤害加成 */

@@ -30,7 +30,8 @@ public abstract class LivingEntityReloadMixin {
 	@Inject(method = "tickReloadState", at = @At("HEAD"), remap = false)
 	private void gunlevel$beginWindow(CallbackInfoReturnable<com.tacz.guns.api.entity.ReloadState> cir) {
 		ItemStack main = shooter.getMainHandItem();
-		LevelScaling.beginWindow(TaczCompat.isGun(main) ? GunLevelData.getLevel(main) : 0);
+		// 窗口带着射手：GunReloadTimeMixin 要靠它读主手那把枪的换弹改造芯片
+		LevelScaling.beginWindow(TaczCompat.isGun(main) ? GunLevelData.getLevel(main) : 0, shooter);
 	}
 
 	@Inject(method = "tickReloadState", at = @At("RETURN"), remap = false)

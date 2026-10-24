@@ -46,8 +46,15 @@ public abstract class GunDataMixin {
 			at = @At("RETURN"), cancellable = true, remap = false)
 	private void gunlevel$inaccuracy(InaccuracyType type, CallbackInfoReturnable<Float> cir) {
 		int level = LevelScaling.currentLevel();
-		if (level > 0) {
-			cir.setReturnValue((float) (cir.getReturnValue() * LevelScaling.spreadScale(level)));
+		double scale = level > 0 ? LevelScaling.spreadScale(level) : 1.0;
+		// 蓝·散布改造：定值一档，和等级无关（射击窗口里读主手那把枪）
+		net.minecraft.world.entity.LivingEntity shooter = LevelScaling.currentShooter();
+		if (shooter != null && com.eternal.gunlevel.item.GunChipData.get(shooter.getMainHandItem())
+				.contains(com.eternal.gunlevel.effect.Chip.SPREAD_MOD)) {
+			scale *= 1.0 - GunLevelMod.CONFIG.chipBlueSpread;
+		}
+		if (scale != 1.0) {
+			cir.setReturnValue((float) (cir.getReturnValue() * scale));
 		}
 	}
 }
