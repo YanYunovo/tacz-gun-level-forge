@@ -4,7 +4,7 @@ license = "MIT"
 
 [[mods]]
 modId = "tacz_gun_level"
-version = "1.10.0"
+version = "1.20.0"
 displayName = "TACZ-元素升级"
 description = '''给 TACZ（永恒枪械工坊：零）的枪械加 1~5 级「永恒改装」等级，并追加七元素核芯与元素反应、十颗金芯片（芯片装配台）、三台机器与金芯片获取链。需要 TACZ 才能发挥全部效果；未装 TACZ 时只出方块与物品，不会崩。'''
 logoFile = ""

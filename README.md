@@ -15,7 +15,7 @@ TACZ（永恒枪械工坊：零）**官方只更新 Forge**，所以这个工程
 | 前置模组 | 官方 TACZ 1.20.1（实测 1.1.6 / 1.1.7-hotfix）+ Geckolib 4.4.9（TACZ 自己的前置） |
 | Java | 17（构建工具链必须是 JDK17，见下） |
 
-成品：`build/libs/tacz-gun-level-1.10.0.jar`，放进实例的 `mods/` 即可。
+成品：`build/libs/tacz-gun-level-1.20.0.jar`，放进实例的 `mods/` 即可。
 产物文件名跟着 `archives_base_name=tacz-gun-level`，**与仓库名不同是有意的**：`mod_id=tacz_gun_level` 是枪 NBT 的键名
 和 assets/data 的命名空间，跟着改名会让已升级的枪掉回 LV1。
 **没装 TACZ 也不会崩**：前置检测走 `Class.forName("com.tacz.guns.api.item.IGun", false, loader)`，
