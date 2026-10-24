@@ -129,9 +129,9 @@ public enum Chip {
 	HOLD_BREATH(ChipTier.PURPLE),
 	/** 精打细算：弹匣余量（打完这一发后）不高于容量 30%（向下取整）时伤害 +20% */
 	BUDGET_SHOT(ChipTier.PURPLE),
-	/** 风灵契约：主手持枪时免疫摔落伤害（灵风之祝那条免摔的不看元素版） */
+	/** 风灵契约：主手持装了风元素核芯的枪时免疫摔落伤害（与灵风之祝同一套「风元素 + 芯片」判据） */
 	WIND_PACT(ChipTier.PURPLE),
-	/** 风灵祝福：主手持枪时可以二段跳（灵风之祝那条二段跳的不看元素版） */
+	/** 风灵祝福：主手持装了风元素核芯的枪时可以二段跳（同上，判据共用 {@link WindGuardState#purpleWindActive}） */
 	WIND_GRACE(ChipTier.PURPLE),
 	/** 不破誓约：受到伤害 −15%，并把 16 格内正盯着玩家的敌对生物的仇恨抢到自己身上 */
 	STEADFAST_OATH(ChipTier.PURPLE),

@@ -51,13 +51,11 @@ public final class LivingGuards {
 
 	/**
 	 * 免疫摔落伤害的两颗芯片：灵风之祝（风元素枪 + 芯片，见 {@link WindGuardState#passiveActive}）
-	 * 与紫芯片·风灵契约（只要主手持着装了它的枪，不看元素）。整个事件取消，连伤害源都不产生。
+	 * 与紫芯片·风灵契约（风元素核芯 + 芯片，同样只看主手）。整个事件取消，连伤害源都不产生。
 	 */
 	private static void onFall(LivingFallEvent event) {
 		if (WindGuardState.passiveActive(event.getEntity())
-				|| (event.getEntity() instanceof Player player
-						&& com.eternal.gunlevel.item.GunChipData.holdsChip(player.getMainHandItem(),
-								Chip.WIND_PACT))) {
+				|| WindGuardState.purpleWindActive(event.getEntity(), Chip.WIND_PACT)) {
 			event.setCanceled(true);
 		}
 	}

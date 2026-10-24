@@ -65,6 +65,18 @@ public final class WindGuardState {
 	}
 
 	/**
+	 * 紫芯片两颗的前置（2026-10-24 用户补的口径）：**装了风元素核芯**才算数。
+	 * 风灵契约（免摔）与风灵祝福（二段跳）共用这一个判据，与灵风之祝同一套「风元素 + 芯片」。
+	 */
+	public static boolean purpleWindActive(LivingEntity entity, Chip chip) {
+		if (!(entity instanceof Player player)) {
+			return false;
+		}
+		ItemStack gun = player.getMainHandItem();
+		return GunCoreData.get(gun) == Element.WIND && GunChipData.holdsChip(gun, chip);
+	}
+
+	/**
 	 * 玩家按键：一次按键只交给「槽位顺序里第一颗有主动技能的芯片」。
 	 * 它这时候还在冷却，这一次按键就什么都不做，不会替补去放第二格那颗的技能。
 	 */
