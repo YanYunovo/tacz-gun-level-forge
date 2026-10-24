@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "tacz_gun_level:item/tactical_chip_gold"
+    "layer0": "tacz_gun_level:item/tactical_chip_crystal_summon"
   }
 }
