@@ -1,5 +1,6 @@
 package com.eternal.gunlevel.util;
 
+import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IGun;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -28,5 +29,16 @@ final class TaczBridge {
 	static ResourceLocation gunIdOf(ItemStack stack) {
 		IGun gun = IGun.getIGunOrNull(stack);
 		return gun == null ? null : gun.getGunId(stack);
+	}
+
+	/** 这把枪的逻辑弹型 id（ammoId 在 NBT 上，不是物品 id；拿不到返回 null） */
+	static ResourceLocation ammoIdOf(ItemStack gun) {
+		IGun iGun = IGun.getIGunOrNull(gun);
+		if (iGun == null) {
+			return null;
+		}
+		return TimelessAPI.getCommonGunIndex(iGun.getGunId(gun))
+				.map(index -> index.getGunData().getAmmoId())
+				.orElse(null);
 	}
 }

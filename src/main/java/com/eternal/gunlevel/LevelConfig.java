@@ -312,7 +312,6 @@ public class LevelConfig {
 	public double chipBlueHeadDamage = 0.10;
 	/** 蓝芯片·暴击伤害改造：暴击伤害倍率的加值，定值不乘等级 */
 	public double chipBlueCritDamage = 0.10;
-
 	/** 蓝芯片·换弹改造：换弹时间缩短比例，定值不乘等级 */
 	public double chipBlueReload = 0.10;
 	/** 蓝芯片·弹匣扩容：主弹匣容量提升比例，定值不乘等级（与极光翻倍、迅雷减容量同一条链连乘，四舍五入取整） */
@@ -355,7 +354,6 @@ public class LevelConfig {
 	public double chipPurpleNimbleSpeed = 0.20;
 	/** 紫芯片·灵动步伐：作为代价扣掉的护甲点数（ADDITION，属性下限 0，穿不满就归零） */
 	public double chipPurpleNimbleArmorPenalty = 4.0;
-
 	/** 紫芯片·背水一战：射手血量比例低于此值才吃加成 */
 	public double chipPurpleLastStandHealthRatio = 0.30;
 	/** 紫芯片·背水一战：加成幅度 */
@@ -392,6 +390,62 @@ public class LevelConfig {
 	public double chipPurpleTeamworkPerPlayer = 0.08;
 	/** 紫芯片·抱团取暖：加成上限 */
 	public double chipPurpleTeamworkCap = 0.24;
+	/** 金芯片·凛冬之啸：每次命中给目标叠的凝寒持续秒数（层数叠加时刷新时间） */
+	public double chipRimeSlowSeconds = 1.2;
+	/** 金芯片·凛冬之啸：每层凝寒的移动速度降低比例（独立 buff，与原版缓慢可叠加） */
+	public double chipRimeSlowPerStack = 0.15;
+	/** 金芯片·凛冬之啸：凝寒层数上限（达到上限的层数即最高减速档） */
+	public int chipRimeMaxStacks = 2;
+	/** 金芯片·凛冬之啸：装备后冻结反应的下限时间（秒），替代 freezeMinimum */
+	public double chipRimeFreezeFloor = 0.6;
+	/** 金芯片·凛冬之啸：「寒潮」半径（格） */
+	public double chipRimeWaveRadius = 8.0;
+	/** 金芯片·凛冬之啸：「寒潮」持续秒数（目标吃满凝寒层数） */
+	public double chipRimeWaveSeconds = 3.0;
+	/** 金芯片·凛冬之啸：「寒潮」冷却秒数 */
+	public double chipRimeWaveCooldownSeconds = 30.0;
+	/** 金芯片·潮汐律令：触发任意元素回复的生命（颗，按永恒改装等级放大） */
+	public double chipTideHealPerLevel = 1.0;
+	/** 金芯片·潮汐律令：反应回血的内置冷却秒数（防连续反应刷血） */
+	public double chipTideHealCooldownSeconds = 2.0;
+	/** 金芯片·潮汐律令：「涌泉」回复的生命（颗，按永恒改装等级放大） */
+	public double chipTideActiveHealPerLevel = 4.0;
+	/** 金芯片·潮汐律令：「涌泉」冷却秒数 */
+	public double chipTideActiveCooldownSeconds = 35.0;
+	/** 金芯片·缠藤誓约：激化持续时间加成（秒，按永恒改装等级放大） */
+	public double chipVineQuickenBonusPerLevel = 0.5;
+	/** 金芯片·缠藤誓约：绽放领域半径加成（格，按永恒改装等级放大） */
+	public double chipVineBloomRadiusPerLevel = 0.5;
+	/** 金芯片·缠藤誓约：「藤缚」定身时长（秒，按永恒改装等级放大） */
+	public double chipVineRootSecondsPerLevel = 1.5;
+	/** 金芯片·缠藤誓约：「藤缚」冷却秒数 */
+	public double chipVineRootCooldownSeconds = 18.0;
+	/** 金芯片·磐岩壁垒：结晶金心上限的提升（颗，按永恒改装等级放大） */
+	public int chipRockHeartBonusPerLevel = 1;
+	/** 金芯片·磐岩壁垒：有金心吸收时的受伤减免比例 */
+	public double chipRockDamageReduction = 0.05;
+	/** 金芯片·磐岩壁垒：「岩铠」立刻获得的金心颗数（按永恒改装等级放大） */
+	public int chipRockActiveHeartsPerLevel = 3;
+	/** 金芯片·磐岩壁垒：「岩铠」冷却秒数 */
+	public double chipRockActiveCooldownSeconds = 30.0;
+	/** 金芯片·爆裂收割：目标生命比例低于此值才吃加成 */
+	public double chipReapHealthRatio = 0.35;
+	/** 金芯片·爆裂收割：加成幅度，按永恒改装等级放大（LV5 = +125%） */
+	public double chipReapDamagePerLevel = 0.25;
+	/** 金芯片·荣誉勋章：每层击杀的伤害加成，按永恒改装等级放大 */
+	public double chipMedalDamagePerLevel = 0.03;
+	/** 金芯片·荣誉勋章：叠层上限 */
+	public int chipMedalMaxStacks = 7;
+	/** 金芯片·荣誉勋章：连续这么多秒没有击杀就整条清零（自己受到伤害也立刻清零） */
+	public double chipMedalResetSeconds = 10.0;
+	/** 金芯片·弹药征用：击杀返还的后备弹药发数，按永恒改装等级放大 */
+	public int chipSalvageAmmoPerLevel = 4;
+	/** 金芯片·战术换弹：换弹时间缩短比例，按永恒改装等级放大（LV5 = −30%） */
+	public double chipTacReloadPerLevel = 0.06;
+	/** 金芯片·战术换弹：换弹完成后的伤害加成（定值，不乘等级） */
+	public double chipTacReloadDamage = 0.25;
+	/** 金芯片·战术换弹：换弹完成后伤害加成的有效秒数 */
+	public double chipTacReloadBonusSeconds = 3.0;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

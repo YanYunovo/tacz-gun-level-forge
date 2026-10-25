@@ -9,6 +9,7 @@ import com.eternal.gunlevel.effect.BloomDomain;
 import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.ChipState;
 import com.eternal.gunlevel.effect.ChipTier;
+import com.eternal.gunlevel.effect.ChillEffect;
 import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.CrystallizationEffect;
 import com.eternal.gunlevel.effect.Element;
@@ -27,6 +28,9 @@ import com.eternal.gunlevel.effect.StillnessState;
 import com.eternal.gunlevel.effect.ThunderVoiceState;
 import com.eternal.gunlevel.effect.WindGuardState;
 import com.eternal.gunlevel.effect.HardenedState;
+import com.eternal.gunlevel.effect.MedalState;
+import com.eternal.gunlevel.effect.TacticalReloadState;
+import com.eternal.gunlevel.effect.ElementSkillState;
 import com.eternal.gunlevel.entity.RockConstructEntity;
 import com.eternal.gunlevel.item.BrokenChipItem;
 import com.eternal.gunlevel.item.ChipPackItem;
@@ -134,6 +138,8 @@ public class GunLevelMod {
 	public static MobEffect CRYSTALLIZATION;
 	/** 极光弹匣（战术芯片·极光追击）buff：只给客户端预测射速用的影子，真理在枪 NBT 的极光匣标记上 */
 	public static MobEffect AURORA;
+	/** 凝寒（战术芯片·凛冬之啸）debuff：独立的状态效果，与原版缓慢互不相干、可以叠加 */
+	public static MobEffect CHILL;
 
 	/**
 	 * 岩元素造物（战术芯片·凝晶召唤）：泥土皮肤的僵尸，用原版的僵尸模型与骨架，
@@ -241,6 +247,8 @@ public class GunLevelMod {
 					() -> CRYSTALLIZATION = new CrystallizationEffect());
 			event.register(ForgeRegistries.Keys.MOB_EFFECTS, id("aurora"),
 					() -> AURORA = new AuroraEffect());
+			event.register(ForgeRegistries.Keys.MOB_EFFECTS, id("chill"),
+					() -> CHILL = new ChillEffect());
 		} else if (ForgeRegistries.Keys.ENTITY_TYPES.equals(event.getRegistryKey())) {
 			event.register(ForgeRegistries.Keys.ENTITY_TYPES, id("rock_construct"),
 					() -> ROCK_CONSTRUCT = buildRockConstruct());
@@ -337,6 +345,9 @@ public class GunLevelMod {
 		StillnessState.tick(event.getServer());
 		OathState.tick(event.getServer());
 		HardenedState.tick(event.getServer());
+		MedalState.tick(event.getServer());
+		TacticalReloadState.tick(event.getServer());
+		ElementSkillState.tick(event.getServer());
 	}
 
 	private void onServerStopping(ServerStoppingEvent event) {
@@ -355,6 +366,9 @@ public class GunLevelMod {
 		OpeningState.clear();
 		StillnessState.clear();
 		HardenedState.clear();
+		MedalState.clear();
+		TacticalReloadState.clear();
+		ElementSkillState.clear();
 		RockConstructEntity.clear();
 	}
 

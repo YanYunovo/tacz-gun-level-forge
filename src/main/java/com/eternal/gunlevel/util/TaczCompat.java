@@ -81,4 +81,11 @@ public final class TaczCompat {
 		return TaczBridge.gunIdOf(stack);
 	}
 
+	/** 这把枪的逻辑弹型 id（ammoId 在 NBT 上，不是物品 id；拿不到返回 null） */
+	public static ResourceLocation ammoIdOf(ItemStack gun) {
+		if (!TACZ_LOADED || gun == null || gun.isEmpty()) {
+			return null;
+		}
+		return TaczBridge.ammoIdOf(gun);
+	}
 }

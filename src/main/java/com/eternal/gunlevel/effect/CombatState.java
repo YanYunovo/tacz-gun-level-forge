@@ -15,6 +15,7 @@ import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.sounds.SoundEvents;
@@ -155,7 +156,7 @@ public final class CombatState {
 			consumePortion(c, world);
 		}
 		sendParticles(world, victim, particleOf(element), 10);
-		react(victim, c, reaction, shooter, hitDamage, chips);
+		react(victim, c, reaction, shooter, hitDamage, chips, level);
 	}
 
 	/** 附着元素：换元素才重新起一份，同元素只刷新时间，别把扩散残留的份数冲掉 */
@@ -212,7 +213,7 @@ public final class CombatState {
 	}
 
 	private static void react(LivingEntity victim, Combat c, Reaction reaction,
-			LivingEntity shooter, float hitDamage, EnumSet<Chip> chips) {
+			LivingEntity shooter, float hitDamage, EnumSet<Chip> chips, int level) {
 		Level world = victim.level();
 		Strike strike = new Strike(shooter, c.critChance);
 		switch (reaction) {
@@ -271,7 +272,9 @@ public final class CombatState {
 				c.freezePenalty = t < c.freezeReadyAt
 						? c.freezePenalty + GunLevelMod.CONFIG.freezeDecay
 						: 0;
-				double seconds = Math.max(GunLevelMod.CONFIG.freezeMinimum,
+				double seconds = Math.max(chips.contains(Chip.RIME)
+								? GunLevelMod.CONFIG.chipRimeFreezeFloor
+								: GunLevelMod.CONFIG.freezeMinimum,
 						GunLevelMod.CONFIG.freezeSeconds - c.freezePenalty);
 				c.freezeUntil = Math.max(c.freezeUntil, deadline(world, seconds));
 				c.freezeReadyAt = c.freezeUntil + ticks(GunLevelMod.CONFIG.freezeResetSeconds);
@@ -279,9 +282,12 @@ public final class CombatState {
 			}
 			case BLOOM -> {
 				// 绽放：在触发反应的玩家脚下开一片跟随他的苏生领域，领域内全体玩家回血。
-				// 枪上装了净化领域的话，这片领域还要开始记血量账（芯片集合传进去判断）
+				// 枪上装了净化领域的话，这片领域还要开始记血量账（芯片集合传进去判断）；
+				// 缠藤誓约把领域半径按永恒改装等级放大
 				if (world instanceof ServerLevel serverWorld) {
-					BloomDomain.spawn(serverWorld, shooter, chips);
+					double radiusBonus = chips.contains(Chip.VINE)
+							? GunLevelMod.CONFIG.chipVineBloomRadiusPerLevel * level : 0.0;
+					BloomDomain.spawn(serverWorld, shooter, chips, radiusBonus);
 				}
 				sendParticles(world, victim, ParticleTypes.HAPPY_VILLAGER, 20);
 			}
@@ -294,15 +300,17 @@ public final class CombatState {
 				sendParticles(world, victim, ParticleTypes.FLAME, 16);
 			}
 			case QUICKEN -> {
-				// 激化：给玩家一层激化 buff，射速在读取射击间隔时折算；重复激化只刷新时间
-				applyQuicken(shooter);
+				// 激化：给玩家一层激化 buff，射速在读取射击间隔时折算；重复激化只刷新时间。
+				// 缠藤誓约把持续时间按永恒改装等级拉长
+				applyQuicken(shooter, chips.contains(Chip.VINE) ? level : 0);
 				sendParticles(world, victim, ParticleTypes.ELECTRIC_SPARK, 16);
 			}
 			case CRYSTALLIZE -> {
-				// 结晶：不掉血，只给触发反应的射手叠金心；附着按普通反应照常消耗
-				applyCrystallize(shooter);
+				// 结晶：不掉血，只给触发反应的射手叠金心；附着按普通反应照常消耗。
+				// 磐岩壁垒把金心上限按永恒改装等级放大。
 				// 凝晶召唤：装了这颗芯片才召唤岩元素造物，造物强度看枪上总共装了几颗。
 				// 已有造物在场时 summon 返回 null（用户口径：存在期间无法重复召唤，这一次忽略）
+				applyCrystallize(shooter, chips.contains(Chip.ROCK_WARD) ? level : 0);
 				if (chips.contains(Chip.CRYSTAL_SUMMON) && world instanceof ServerLevel serverWorld
 						&& RockConstructEntity.summon(serverWorld, shooter, chips.size()) != null) {
 					ChipHints.show(shooter, Chip.CRYSTAL_SUMMON);
@@ -333,6 +341,10 @@ public final class CombatState {
 				}
 				sendParticles(world, victim, ParticleTypes.CLOUD, 20);
 			}
+		}
+		// 潮汐律令：触发任意元素反应回血（内置冷却，防连续反应刷血）
+		if (chips.contains(Chip.TIDE) && shooter instanceof ServerPlayer tideHolder) {
+			ElementSkillState.onReactionHeal(tideHolder, level);
 		}
 	}
 
@@ -374,12 +386,13 @@ public final class CombatState {
 		}
 	}
 
-	/** 上一层/续期激化：只有一层，重复反应刷新持续时间 */
-	private static void applyQuicken(LivingEntity shooter) {
+	/** 上一层/续期激化：只有一层，重复反应刷新持续时间；缠藤誓约把持续时间按等级拉长 */
+	private static void applyQuicken(LivingEntity shooter, int vineLevel) {
 		if (shooter == null || shooter.isRemoved()) {
 			return;
 		}
-		int duration = (int) ticks(GunLevelMod.CONFIG.quickenSeconds);
+		int duration = (int) ticks(GunLevelMod.CONFIG.quickenSeconds
+				+ GunLevelMod.CONFIG.chipVineQuickenBonusPerLevel * vineLevel);
 		MobEffectInstance current = shooter.getEffect(GunLevelMod.QUICKENING);
 		if (current != null) {
 			duration = Math.max(duration, current.getDuration());
@@ -391,18 +404,23 @@ public final class CombatState {
 	 * 叠结晶：1~4 级每次 +1 层、持续 crystallizeSeconds；叠满 crystallizeMaxLevel 那一级
 	 * 固定持续 crystallizeMaxSeconds，这期间再打结晶无效（不涨层也不续时间），
 	 * buff 结束后自然从 0 重新叠。金心由效果本身按层数发放，见 CrystallizationEffect。
+	 * 磐岩壁垒把金心上限加 {@code rockLevel} 颗（层随金心数换算）。
 	 */
-	private static void applyCrystallize(LivingEntity player) {
+	private static void applyCrystallize(LivingEntity player, int rockLevel) {
 		if (player == null || player.isRemoved()) {
 			return;
 		}
 		MobEffectInstance current = player.getEffect(GunLevelMod.CRYSTALLIZATION);
 		int level = current == null ? 0 : current.getAmplifier() + 1;
-		if (level >= GunLevelMod.CONFIG.crystallizeMaxLevel) {
+		double heartsCap = GunLevelMod.CONFIG.crystallizeMaxLevel
+				* GunLevelMod.CONFIG.crystallizeHeartsPerLevel
+				+ GunLevelMod.CONFIG.chipRockHeartBonusPerLevel * rockLevel;
+		double nextHearts = GunLevelMod.CONFIG.crystallizeHeartsPerLevel * (level + 1);
+		if (nextHearts > heartsCap) {
 			return;
 		}
 		int next = level + 1;
-		boolean full = next >= GunLevelMod.CONFIG.crystallizeMaxLevel;
+		boolean full = nextHearts >= heartsCap;
 		double seconds = full
 				? GunLevelMod.CONFIG.crystallizeMaxSeconds
 				: GunLevelMod.CONFIG.crystallizeSeconds;

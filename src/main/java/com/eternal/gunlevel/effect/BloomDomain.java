@@ -60,6 +60,8 @@ public final class BloomDomain {
 		 * 等领域到期、下一次绽放重新建一片时才重新飘（用户口径「效果消失后再触发才会再跳」）。
 		 */
 		boolean hinted;
+		/** 缠藤誓约的半径加成（格）；没有这颗芯片的绽放为 0 */
+		double radiusBonus;
 
 		Domain(ServerLevel world, UUID ownerId, Vec3 pos, long until) {
 			this.world = world;
@@ -81,7 +83,8 @@ public final class BloomDomain {
 	 * 枪上装了净化领域时，这一发给的时间再多 {@code chipPurifyExtraSeconds} 秒，
 	 * 并且这片领域从此开始记血量账（后续用别的枪再绽放不会把它关掉）。
 	 */
-	public static void spawn(ServerLevel world, LivingEntity owner, EnumSet<Chip> chips) {
+	public static void spawn(ServerLevel world, LivingEntity owner, EnumSet<Chip> chips,
+			double radiusBonus) {
 		if (world == null || owner == null) {
 			return;
 		}
@@ -97,8 +100,10 @@ public final class BloomDomain {
 			old.pos = feet;
 			old.until = Math.max(old.until, until);
 			old.regenLevels = Math.min(GunLevelMod.CONFIG.bloomRegenMaxLevel, old.regenLevels + 1);
+			old.radiusBonus = radiusBonus;
 			return old;
 		});
+		domain.radiusBonus = radiusBonus;
 		if (purify) {
 			domain.purify = true;
 			if (!domain.hinted) {
@@ -157,7 +162,7 @@ public final class BloomDomain {
 	}
 
 	private static boolean inside(Domain domain, Entity entity) {
-		double r = GunLevelMod.CONFIG.bloomRadius;
+		double r = GunLevelMod.CONFIG.bloomRadius + domain.radiusBonus;
 		Vec3 center = domain.pos.add(0.0, 1.0, 0.0);
 		return entity.distanceToSqr(center.x(), center.y(), center.z()) <= r * r;
 	}
@@ -264,7 +269,7 @@ public final class BloomDomain {
 	}
 
 	private static void drawRing(Domain domain) {
-		double r = GunLevelMod.CONFIG.bloomRadius;
+		double r = GunLevelMod.CONFIG.bloomRadius + domain.radiusBonus;
 		Vec3 center = domain.pos.add(0.0, 0.1, 0.0);
 		for (int i = 0; i < RING_PARTICLES; i++) {
 			double angle = i * (Math.PI * 2 / RING_PARTICLES) + domain.world.random.nextDouble() * 0.2;

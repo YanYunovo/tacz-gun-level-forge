@@ -91,6 +91,7 @@ public final class WindGuardState {
 				case WIND_BLESSING -> guardWind(player);
 				case THUNDER_VOICE -> ThunderVoiceState.dash(player);
 				case FLAME_ROAR -> FlameRoarState.roar(player);
+				case RIME, TIDE, VINE, ROCK_WARD -> ElementSkillState.requestSkill(player, chip);
 				default -> {
 				}
 			}

@@ -286,6 +286,63 @@ public class TacticalChipItem extends Item {
 					percent(c.chipPurpleTeamworkPerPlayer)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.teamwork.3",
 					percent(c.chipPurpleTeamworkCap)));
+		} else if (chip == Chip.RIME) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.1",
+					percent(c.chipRimeSlowPerStack), number(c.chipRimeMaxStacks)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.2",
+					number(c.chipRimeSlowSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.3",
+					number(c.chipRimeFreezeFloor)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.5",
+					number(c.chipRimeWaveRadius), number(c.chipRimeWaveSeconds),
+					number(c.chipRimeWaveCooldownSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.6"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.7"));
+		} else if (chip == Chip.TIDE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.1",
+					number(c.chipTideHealPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.2"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.3",
+					number(c.chipTideActiveHealPerLevel), number(c.chipTideActiveCooldownSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.5"));
+		} else if (chip == Chip.VINE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.1",
+					number(c.chipVineQuickenBonusPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.2",
+					number(c.chipVineBloomRadiusPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.4",
+					number(c.chipVineRootSecondsPerLevel), number(c.chipVineRootCooldownSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.6"));
+		} else if (chip == Chip.ROCK_WARD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.1",
+					number(c.chipRockHeartBonusPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.2",
+					percent(c.chipRockDamageReduction)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.4",
+					number(c.chipRockActiveHeartsPerLevel), number(c.chipRockActiveCooldownSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.6"));
+		} else if (chip == Chip.REAP) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.reap",
+					percent(c.chipReapHealthRatio), percent(c.chipReapDamagePerLevel)));
+		} else if (chip == Chip.MEDAL) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.medal.1",
+					percent(c.chipMedalDamagePerLevel), number(c.chipMedalMaxStacks)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.medal.2",
+					number(c.chipMedalResetSeconds)));
+		} else if (chip == Chip.SALVAGE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage",
+					number(c.chipSalvageAmmoPerLevel)));
+		} else if (chip == Chip.TAC_RELOAD) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.1",
+					percent(c.chipTacReloadPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.2",
+					percent(c.chipTacReloadDamage), number(c.chipTacReloadBonusSeconds)));
 		}
 	}
 

@@ -11,11 +11,16 @@ import com.eternal.gunlevel.effect.FervorState;
 import com.eternal.gunlevel.effect.HuntState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
+import com.eternal.gunlevel.effect.MedalState;
 import com.eternal.gunlevel.effect.OpeningState;
 import com.eternal.gunlevel.effect.RhythmState;
+import com.eternal.gunlevel.effect.SalvageState;
+import com.eternal.gunlevel.effect.ElementSkillState;
 import com.eternal.gunlevel.effect.SpreeState;
 import com.eternal.gunlevel.effect.StillnessState;
+import com.eternal.gunlevel.effect.TacticalReloadState;
 import com.eternal.gunlevel.effect.TeamworkState;
+import net.minecraft.world.effect.MobEffectInstance;
 import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.item.GunCoreData;
@@ -178,6 +183,9 @@ public abstract class EntityKineticBulletMixin {
 	/** 出膛那一刻掷暴击用的骰值：无坚不摧要在命中时按目标血量抬高及格线，不能到那时再补掷一次 */
 	@Unique
 	private float gunlevel$critRoll;
+	/** 战术换弹：出膛定格的「换弹完成后 3 秒」标记（该枪 NBT 上的截止时刻，与咆哮匣同一手法） */
+	@Unique
+	private boolean gunlevel$tacReload;
 	/** 这一次命中的目标（onHitEntity 开头抓），抵近射击的距离与两边的血量口径都从它算 */
 	@Unique
 	private Entity gunlevel$hitTarget;
@@ -230,6 +238,9 @@ public abstract class EntityKineticBulletMixin {
 		this.gunlevel$highMag = chips.contains(Chip.HIGH_MAG) && gunlevel$hasAmmoMargin(gunStack);
 		this.gunlevel$lowMag = chips.contains(Chip.BUDGET_SHOT)
 				&& gunlevel$isLowMag(gunStack, gunData);
+		// 战术换弹：换弹完成窗口在出膛定格（子弹飞行途中窗口过掉也照吃这一发）
+		this.gunlevel$tacReload = chips.contains(Chip.TAC_RELOAD)
+				&& TacticalReloadState.inWindow(gunStack, world.getGameTime());
 		this.gunlevel$aurora = chips.contains(Chip.AURORA);
 		// 极光匣的标记在那把枪的 NBT 上，此刻定格：这一匣打出去的命中不参与攒下一匣
 		this.gunlevel$auroraMag = GunAuroraData.isOn(gunStack);
@@ -443,6 +454,11 @@ public abstract class EntityKineticBulletMixin {
 	}
 
 	@Unique
+	private static int ticks(double seconds) {
+		return (int) Math.max(1, Math.round(seconds * 20));
+	}
+
+	@Unique
 	private boolean gunlevel$rollFakeHead() {
 		if (this.gunlevel$headshot || this.gunlevel$shooter == null) {
 			return false;
@@ -618,6 +634,26 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$lowMag) {
 			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipPurpleLowMagDamage;
 		}
+		// 金芯片第二批（2026-10-25）：三个定值乘区
+		// 爆裂收割：目标血量低于阈值才吃（打的不是活物就不算，血量比例对非活物恒 0）
+		if (this.gunlevel$chips.contains(Chip.REAP)
+				&& this.gunlevel$hitTarget instanceof LivingEntity
+				&& gunlevel$targetHealthRatio() < GunLevelMod.CONFIG.chipReapHealthRatio) {
+			scaled *= 1.0F + (float) (GunLevelMod.CONFIG.chipReapDamagePerLevel
+					* this.gunlevel$level);
+		}
+		// 荣誉勋章：击杀叠层（受击/脱战清零，见 MedalState）
+		if (this.gunlevel$chips.contains(Chip.MEDAL) && this.gunlevel$shooter != null) {
+			double medal = MedalState.bonus(this.gunlevel$shooter,
+					this.gunlevel$shooter.level().getGameTime(), this.gunlevel$level);
+			if (medal > 0) {
+				scaled *= 1.0F + (float) medal;
+			}
+		}
+		// 战术换弹：换弹完成 3 秒内（出膛定格）
+		if (this.gunlevel$tacReload) {
+			scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipTacReloadDamage;
+		}
 		// 烈焰咆哮：算打头的那发再吃一档按等级的增伤（概率判定已在 resolveHeadHit 里做掉了）
 		if (this.gunlevel$headHit) {
 			scaled *= 1.0F + (float) (GunLevelMod.CONFIG.chipRoarHeadDamagePerLevel
@@ -743,6 +779,16 @@ public abstract class EntityKineticBulletMixin {
 		}
 		// 强击连发的额外攻击是在这个方法内部递归进来的，飘字与粒子只在最外层那一次发，免得一行刷两遍
 		boolean outer = !this.gunlevel$barraging;
+		// 凛冬之啸：命中叠凝寒（独立 buff，与原版缓慢可叠加）；内层递归也算一次命中
+		if (this.gunlevel$chips.contains(Chip.RIME)
+				&& target instanceof LivingEntity chilling
+				&& target.level() instanceof ServerLevel) {
+			int maxAmp = Math.max(0, GunLevelMod.CONFIG.chipRimeMaxStacks - 1);
+			MobEffectInstance current = chilling.getEffect(GunLevelMod.CHILL);
+			int amp = current == null ? 0 : Math.min(maxAmp, current.getAmplifier() + 1);
+			chilling.addEffect(new MobEffectInstance(GunLevelMod.CHILL,
+					ticks(GunLevelMod.CONFIG.chipRimeSlowSeconds), amp));
+		}
 		// 乘胜追击的击杀账与先发制人的战斗账：给每次外层命中记账（两颗芯片只在自己那把枪上读加成）
 		if (outer && target.level() instanceof ServerLevel) {
 			OpeningState.onHit(this.gunlevel$shooter, target.level().getGameTime());
@@ -841,6 +887,23 @@ public abstract class EntityKineticBulletMixin {
 				if (refreshed) {
 					ChipHints.show(this.gunlevel$shooter, Chip.FLAME_ROAR, ChipHints.SKILL_READY);
 				}
+			}
+		}
+		// 击杀记账（外层）：荣誉勋章叠层、弹药征用返弹、缠藤誓约登记目标
+		if (outer && target.level() instanceof ServerLevel) {
+			long now = target.level().getGameTime();
+			OpeningState.onHit(this.gunlevel$shooter, now);
+			if (target instanceof LivingEntity victim && !victim.isAlive()) {
+				SpreeState.onKill(this.gunlevel$shooter, now);
+				MedalState.onKill(this.gunlevel$shooter, now);
+				if (this.gunlevel$chips.contains(Chip.SALVAGE)
+						&& this.gunlevel$shooter instanceof ServerPlayer salvager) {
+					SalvageState.onKill(salvager, TaczCompat.findGunStack(
+							this.gunlevel$shooter, this.gunlevel$gunId), this.gunlevel$level);
+				}
+			}
+			if (target instanceof LivingEntity lastHit) {
+				ElementSkillState.recordTarget(this.gunlevel$shooter, lastHit);
 			}
 		}
 		// 反应暴击是独立属性：初始跟随武器面板，概率封顶 20%、倍率封顶 150%

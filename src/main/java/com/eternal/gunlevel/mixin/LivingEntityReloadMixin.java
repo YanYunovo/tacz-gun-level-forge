@@ -37,6 +37,8 @@ public abstract class LivingEntityReloadMixin {
 	@Inject(method = "tickReloadState", at = @At("RETURN"), remap = false)
 	private void gunlevel$endWindow(CallbackInfoReturnable<com.tacz.guns.api.entity.ReloadState> cir) {
 		LevelScaling.endWindow();
+		// 战术换弹：状态归位的那一拍就是「换弹刚完成」，往主手枪 NBT 写伤害加成截止时刻
+		com.eternal.gunlevel.effect.TacticalReloadState.onTick(shooter, cir.getReturnValue());
 	}
 
 	/**

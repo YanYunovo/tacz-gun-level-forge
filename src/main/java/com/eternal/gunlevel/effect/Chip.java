@@ -138,7 +138,32 @@ public enum Chip {
 	/** 硬化护甲：主手持枪时护甲值 +4（两端各挂一份修正，见 {@link HardenedState}） */
 	HARDENED_ARMOR(ChipTier.PURPLE),
 	/** 抱团取暖：装备者 5 格内每多一名其他玩家，圈内全体玩家（含装备者）伤害 +8%，上限 24%，见 {@link TeamworkState} */
-	TEAMWORK(ChipTier.PURPLE);
+	TEAMWORK(ChipTier.PURPLE),
+	/**
+	 * 凛冬之啸：冰元素枪的被动 + 主动技能。命中给目标叠「凝寒」（独立 buff，与原版缓慢可叠加），
+	 * 2 层升到减速 II；冻结反应的下限时间改为 0.6 秒。主动「寒潮」：8 格内全部敌对生物吃满凝寒。
+	 */
+	RIME(ChipTier.GOLD),
+	/** 潮汐律令：水元素枪。你触发的任意元素反应回复生命（内置冷却）；主动「涌泉」清负面并回血。 */
+	TIDE(ChipTier.GOLD),
+	/** 缠藤誓约：草元素枪。激化与绽放领域都强化；主动「藤缚」把最近命中的目标定身。 */
+	VINE(ChipTier.GOLD),
+	/** 磐岩壁垒：岩元素枪。结晶金心上限提升、有金心时受伤减免；主动「岩铠」立刻获得一把金心。 */
+	ROCK_WARD(ChipTier.GOLD),
+	/** 爆裂收割：目标生命值低于 35% 时这一发伤害提升，按永恒改装等级放大 */
+	REAP(ChipTier.GOLD),
+	/**
+	 * 荣誉勋章：击杀叠一层伤害加成（按永恒改装等级放大），上限七层；
+	 * 自己受到伤害、或连续一段时间没有击杀就整条清零 —— 见 {@link MedalState}。
+	 */
+	MEDAL(ChipTier.GOLD),
+	/** 弹药征用：击杀返还后备弹药，数量按永恒改装等级放大 */
+	SALVAGE(ChipTier.GOLD),
+	/**
+	 * 战术换弹：换弹时间缩短，且换弹完成后的几秒内伤害提升（该枪 NBT 记截止时刻，
+	 * 出膛定格 —— 见 {@link TacticalReloadState}）。
+	 */
+	TAC_RELOAD(ChipTier.GOLD);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -195,6 +220,14 @@ public enum Chip {
 			case STEADFAST_OATH -> "不破誓约";
 			case HARDENED_ARMOR -> "硬化护甲";
 			case TEAMWORK -> "抱团取暖";
+			case RIME -> "凛冬之啸";
+			case TIDE -> "潮汐律令";
+			case VINE -> "缠藤誓约";
+			case ROCK_WARD -> "磐岩壁垒";
+			case REAP -> "爆裂收割";
+			case MEDAL -> "荣誉勋章";
+			case SALVAGE -> "弹药征用";
+			case TAC_RELOAD -> "战术换弹";
 		};
 	}
 
@@ -203,7 +236,8 @@ public enum Chip {
 	 * 见 {@code WindGuardState#requestSkill}。
 	 */
 	public boolean hasActiveSkill() {
-		return this == WIND_BLESSING || this == THUNDER_VOICE || this == FLAME_ROAR;
+		return this == WIND_BLESSING || this == THUNDER_VOICE || this == FLAME_ROAR
+				|| this == RIME || this == TIDE || this == VINE || this == ROCK_WARD;
 	}
 
 	/** 主动技能冷却完毕的提示文案：每颗芯片各说各的，别拿风的句子去提示雷 */
@@ -212,6 +246,10 @@ public enum Chip {
 			case WIND_BLESSING -> "msg.tacz_gun_level.wind.ready";
 			case THUNDER_VOICE -> "msg.tacz_gun_level.thunder.ready";
 			case FLAME_ROAR -> "msg.tacz_gun_level.roar.ready";
+			case RIME -> "msg.tacz_gun_level.rime.ready";
+			case TIDE -> "msg.tacz_gun_level.tide.ready";
+			case VINE -> "msg.tacz_gun_level.vine.ready";
+			case ROCK_WARD -> "msg.tacz_gun_level.rock.ready";
 			default -> "msg.tacz_gun_level.skill.ready";
 		};
 	}
