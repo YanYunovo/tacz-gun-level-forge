@@ -64,6 +64,12 @@ public final class TacticalReloadState {
 		gun.getOrCreateTag().putLong(TAG, until);
 	}
 
+	/** 快速装填还剩多少 tick（≤0 = 可用）：全局主动技能锁用它判断什么时候解锁 */
+	public static long remaining(LivingEntity player, long now) {
+		Skill skill = player == null ? null : SKILLS.get(player.getUUID());
+		return skill == null ? 0L : Math.max(0L, skill.readyAt - now);
+	}
+
 	public static void tick(MinecraftServer server) {
 		PREVIOUS.keySet().removeIf(id -> server.getPlayerList().getPlayer(id) == null);
 		// 「快速装填已就绪」提示
@@ -115,6 +121,7 @@ public final class TacticalReloadState {
 		iGun.setCurrentAmmoCount(gun, capacity);
 		skill.readyAt = now + Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipTacReloadSkillCooldown * 20));
+		SkillLock.arm(player, Chip.TAC_RELOAD);
 		skill.announced = false;
 	}
 }

@@ -22,6 +22,7 @@ import com.eternal.gunlevel.effect.NimbleState;
 import com.eternal.gunlevel.effect.OpeningState;
 import com.eternal.gunlevel.effect.OathState;
 import com.eternal.gunlevel.effect.QuickeningEffect;
+import com.eternal.gunlevel.effect.SkillLock;
 import com.eternal.gunlevel.effect.RhythmState;
 import com.eternal.gunlevel.effect.SpreeState;
 import com.eternal.gunlevel.effect.StillnessState;
@@ -347,6 +348,7 @@ public class GunLevelMod {
 		HardenedState.tick(event.getServer());
 		MedalState.tick(event.getServer());
 		TacticalReloadState.tick(event.getServer());
+		SkillLock.tick(event.getServer());
 		ElementSkillState.tick(event.getServer());
 	}
 
@@ -368,6 +370,7 @@ public class GunLevelMod {
 		HardenedState.clear();
 		MedalState.clear();
 		TacticalReloadState.clear();
+		SkillLock.clear();
 		ElementSkillState.clear();
 		RockConstructEntity.clear();
 	}

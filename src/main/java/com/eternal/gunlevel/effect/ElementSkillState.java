@@ -171,7 +171,18 @@ public final class ElementSkillState {
 		}
 		skill.readyAt = now + Math.max(1, Math.round(cooldownSeconds * 20));
 		skill.announced = false;
+		SkillLock.arm(player, chip);
 		return skill;
+	}
+
+	/** 这颗元素的主动技能还剩多少 tick（≤0 = 可用）：全局主动技能锁用它判断什么时候解锁 */
+	public static long remaining(LivingEntity player, Chip chip, long now) {
+		if (player == null) {
+			return 0L;
+		}
+		Map<Chip, Skill> mine = SKILLS.get(player.getUUID());
+		Skill skill = mine == null ? null : mine.get(chip);
+		return skill == null ? 0L : Math.max(0L, skill.readyAt - now);
 	}
 
 	public static void tick(MinecraftServer server) {

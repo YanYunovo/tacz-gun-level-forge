@@ -76,6 +76,7 @@ public final class ThunderVoiceState {
 		}
 		skill.readyAt = now + Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipThunderCooldownSeconds * 20));
+		SkillLock.arm(player, Chip.THUNDER_VOICE);
 		skill.hits = 0;
 		skill.announced = false;
 		TaczCompat.refillMagazine(gun, GunLevelMod.CONFIG.chipThunderDashAmmo);
@@ -97,6 +98,12 @@ public final class ThunderVoiceState {
 			skill.hits -= per;
 			skill.readyAt = Math.max(shooter.level().getGameTime(), skill.readyAt - 20);
 		}
+	}
+
+	/** 迅捷闪冲还剩多少 tick（≤0 = 可用）：全局主动技能锁用它判断什么时候解锁 */
+	public static long remaining(LivingEntity player, long now) {
+		Skill skill = player == null ? null : SKILLS.get(player.getUUID());
+		return skill == null ? 0L : Math.max(0L, skill.readyAt - now);
 	}
 
 	public static void tick(MinecraftServer server) {

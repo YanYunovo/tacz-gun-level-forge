@@ -81,6 +81,11 @@ public final class WindGuardState {
 	 * 它这时候还在冷却，这一次按键就什么都不做，不会替补去放第二格那颗的技能。
 	 */
 	public static void requestSkill(ServerPlayer player) {
+		// 全局锁：刚放过别的主动技能时，在它冷却走完前这一键什么都不做
+		// （2026-10-25 用户口径：不许拿一排带主动技能的枪当摔炮轮流点）
+		if (SkillLock.locked(player, player.level().getGameTime())) {
+			return;
+		}
 		ItemStack gun = player.getMainHandItem();
 		for (Chip chip : GunChipData.ordered(gun)) {
 			if (!chip.hasActiveSkill()) {
@@ -113,6 +118,7 @@ public final class WindGuardState {
 		guard.guardUntil = now + Math.max(1, Math.round(seconds * 20));
 		guard.readyAt = now + Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipWindGuardCooldownSeconds * 20));
+		SkillLock.arm(player, Chip.WIND_BLESSING);
 		guard.gather = true;
 		guard.speedOn = true;
 		guard.announced = false;
@@ -132,6 +138,12 @@ public final class WindGuardState {
 		}
 		guard.gather = false;
 		return true;
+	}
+
+	/** 风的护佑还剩多少 tick（≤0 = 可用）：全局主动技能锁用它判断什么时候解锁 */
+	public static long remaining(LivingEntity player, long now) {
+		Guard guard = player == null ? null : GUARDS.get(player.getUUID());
+		return guard == null ? 0L : Math.max(0L, guard.readyAt - now);
 	}
 
 	public static void tick(MinecraftServer server) {
