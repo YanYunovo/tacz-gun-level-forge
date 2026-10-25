@@ -46,12 +46,6 @@ public final class LivingGuards {
 		if (com.eternal.gunlevel.item.GunChipData.holdsChip(gun, Chip.STEADFAST_OATH)) {
 			amount *= 1.0F - (float) GunLevelMod.CONFIG.chipPurpleOathReduction;
 		}
-		// 磐岩壁垒：有金心吸收时受伤减免（有吸收心=岩系玩法的进行时）
-		if (com.eternal.gunlevel.item.GunChipData.holdsChip(gun, Chip.ROCK_WARD)
-				&& player.getAbsorptionAmount() > 0) {
-			int level = com.eternal.gunlevel.GunLevelData.getLevel(gun);
-			amount *= 1.0F - (float) (GunLevelMod.CONFIG.chipRockDamageReduction * level);
-		}
 		// 荣誉勋章：自己受到伤害立刻整条清零（用户口径）
 		MedalState.onPlayerDamaged(player);
 		event.setAmount(amount);

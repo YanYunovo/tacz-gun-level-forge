@@ -301,10 +301,10 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rime.7"));
 		} else if (chip == Chip.TIDE) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.1",
-					number(c.chipTideHealPerLevel)));
+					number(c.chipTideHealBloodPerLevel)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.2"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.3",
-					number(c.chipTideActiveHealPerLevel), number(c.chipTideActiveCooldownSeconds)));
+					number(c.chipTideActiveHealBloodPerLevel), number(c.chipTideActiveCooldownSeconds)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.4"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tide.5"));
 		} else if (chip == Chip.VINE) {
@@ -319,14 +319,12 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.6"));
 		} else if (chip == Chip.ROCK_WARD) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.1",
-					number(c.chipRockHeartBonusPerLevel)));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.2",
-					percent(c.chipRockDamageReduction)));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.3"));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.4",
-					number(c.chipRockActiveHeartsPerLevel), number(c.chipRockActiveCooldownSeconds)));
+					number(c.chipRockShieldCapPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.2"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.3",
+					number(c.chipRockActiveShieldPerLevel), number(c.chipRockActiveCooldownSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.4"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.5"));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.6"));
 		} else if (chip == Chip.REAP) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.reap",
 					percent(c.chipReapHealthRatio), percent(c.chipReapDamagePerLevel)));

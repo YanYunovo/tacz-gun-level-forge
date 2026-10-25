@@ -404,12 +404,12 @@ public class LevelConfig {
 	public double chipRimeWaveSeconds = 3.0;
 	/** 金芯片·凛冬之啸：「寒潮」冷却秒数 */
 	public double chipRimeWaveCooldownSeconds = 30.0;
-	/** 金芯片·潮汐律令：触发任意元素回复的生命（颗，按永恒改装等级放大） */
-	public double chipTideHealPerLevel = 1.0;
+	/** 金芯片·潮汐律令：触发任意元素反应回复的血量（血，按永恒改装等级放大；1 心 = 2 血） */
+	public double chipTideHealBloodPerLevel = 0.8;
 	/** 金芯片·潮汐律令：反应回血的内置冷却秒数（防连续反应刷血） */
-	public double chipTideHealCooldownSeconds = 2.0;
-	/** 金芯片·潮汐律令：「涌泉」回复的生命（颗，按永恒改装等级放大） */
-	public double chipTideActiveHealPerLevel = 4.0;
+	public double chipTideHealCooldownSeconds = 4.0;
+	/** 金芯片·潮汐律令：「涌泉」回复的血量（血，按永恒改装等级放大） */
+	public double chipTideActiveHealBloodPerLevel = 4.0;
 	/** 金芯片·潮汐律令：「涌泉」冷却秒数 */
 	public double chipTideActiveCooldownSeconds = 35.0;
 	/** 金芯片·缠藤誓约：激化持续时间加成（秒，按永恒改装等级放大） */
@@ -420,12 +420,10 @@ public class LevelConfig {
 	public double chipVineRootSecondsPerLevel = 1.5;
 	/** 金芯片·缠藤誓约：「藤缚」冷却秒数 */
 	public double chipVineRootCooldownSeconds = 18.0;
-	/** 金芯片·磐岩壁垒：结晶金心上限的提升（颗，按永恒改装等级放大） */
-	public int chipRockHeartBonusPerLevel = 1;
-	/** 金芯片·磐岩壁垒：有金心吸收时的受伤减免比例 */
-	public double chipRockDamageReduction = 0.05;
-	/** 金芯片·磐岩壁垒：「岩铠」立刻获得的金心颗数（按永恒改装等级放大） */
-	public int chipRockActiveHeartsPerLevel = 3;
+	/** 金芯片·磐岩壁垒：结晶护盾上限的提升（护盾，按永恒改装等级放大；1 金心 = 2 护盾） */
+	public double chipRockShieldCapPerLevel = 2.0;
+	/** 金芯片·磐岩壁垒：「岩铠」立刻获得的护盾（按永恒改装等级放大） */
+	public double chipRockActiveShieldPerLevel = 6.0;
 	/** 金芯片·磐岩壁垒：「岩铠」冷却秒数 */
 	public double chipRockActiveCooldownSeconds = 30.0;
 	/** 金芯片·爆裂收割：目标生命比例低于此值才吃加成 */

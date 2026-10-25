@@ -69,7 +69,7 @@ public final class ElementSkillState {
 			return;
 		}
 		TIDE_HEAL_AT.put(player.getUUID(), now);
-		player.heal((float) (GunLevelMod.CONFIG.chipTideHealPerLevel * level));
+		player.heal((float) (GunLevelMod.CONFIG.chipTideHealBloodPerLevel * level));
 	}
 
 	/** 玩家按键：由 {@link WindGuardState#requestSkill} 按槽位顺序分发过来 */
@@ -121,7 +121,7 @@ public final class ElementSkillState {
 				.map(MobEffectInstance::getEffect)
 				.toList()
 				.forEach(player::removeEffect);
-		player.heal((float) (GunLevelMod.CONFIG.chipTideActiveHealPerLevel * level));
+		player.heal((float) (GunLevelMod.CONFIG.chipTideActiveHealBloodPerLevel * level));
 	}
 
 	/** 藤缚：最近命中的目标定身（缓慢 VI，几乎无法移动） */
@@ -154,7 +154,7 @@ public final class ElementSkillState {
 			return;
 		}
 		int level = LevelScaling.levelOfStack(player.getMainHandItem());
-		float points = (float) (GunLevelMod.CONFIG.chipRockActiveHeartsPerLevel * 2.0 * level);
+		float points = (float) (GunLevelMod.CONFIG.chipRockActiveShieldPerLevel * level);
 		player.setAbsorptionAmount(player.getAbsorptionAmount() + points);
 	}
 

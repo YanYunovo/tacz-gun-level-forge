@@ -412,9 +412,10 @@ public final class CombatState {
 		}
 		MobEffectInstance current = player.getEffect(GunLevelMod.CRYSTALLIZATION);
 		int level = current == null ? 0 : current.getAmplifier() + 1;
+		// 磐岩壁垒的上限加成按护盾配（1 金心 = 2 护盾），这里折回「心」参与上限比较
 		double heartsCap = GunLevelMod.CONFIG.crystallizeMaxLevel
 				* GunLevelMod.CONFIG.crystallizeHeartsPerLevel
-				+ GunLevelMod.CONFIG.chipRockHeartBonusPerLevel * rockLevel;
+				+ GunLevelMod.CONFIG.chipRockShieldCapPerLevel * rockLevel / 2.0;
 		double nextHearts = GunLevelMod.CONFIG.crystallizeHeartsPerLevel * (level + 1);
 		if (nextHearts > heartsCap) {
 			return;
