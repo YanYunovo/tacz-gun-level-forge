@@ -92,6 +92,7 @@ public final class WindGuardState {
 				case THUNDER_VOICE -> ThunderVoiceState.dash(player);
 				case FLAME_ROAR -> FlameRoarState.roar(player);
 				case RIME, TIDE, VINE, ROCK_WARD -> ElementSkillState.requestSkill(player, chip);
+				case TAC_RELOAD -> TacticalReloadState.quickReload(player);
 				default -> {
 				}
 			}

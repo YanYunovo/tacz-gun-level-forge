@@ -160,8 +160,9 @@ public enum Chip {
 	/** 弹药征用：击杀返还后备弹药，数量按永恒改装等级放大 */
 	SALVAGE(ChipTier.GOLD),
 	/**
-	 * 战术换弹：换弹时间缩短，且换弹完成后的几秒内伤害提升（该枪 NBT 记截止时刻，
-	 * 出膛定格 —— 见 {@link TacticalReloadState}）。
+	 * 战术换弹：换弹时间缩短，换弹完成后的几秒内伤害提升（该枪 NBT 记截止时刻，
+	 * 出膛定格 —— 见 {@link TacticalReloadState}）；
+	 * 主动「快速装填」立刻完成当前换弹（把主弹匣填满）。
 	 */
 	TAC_RELOAD(ChipTier.GOLD);
 
@@ -237,7 +238,8 @@ public enum Chip {
 	 */
 	public boolean hasActiveSkill() {
 		return this == WIND_BLESSING || this == THUNDER_VOICE || this == FLAME_ROAR
-				|| this == RIME || this == TIDE || this == VINE || this == ROCK_WARD;
+				|| this == RIME || this == TIDE || this == VINE || this == ROCK_WARD
+				|| this == TAC_RELOAD;
 	}
 
 	/** 主动技能冷却完毕的提示文案：每颗芯片各说各的，别拿风的句子去提示雷 */
@@ -250,6 +252,7 @@ public enum Chip {
 			case TIDE -> "msg.tacz_gun_level.tide.ready";
 			case VINE -> "msg.tacz_gun_level.vine.ready";
 			case ROCK_WARD -> "msg.tacz_gun_level.rock.ready";
+			case TAC_RELOAD -> "msg.tacz_gun_level.tac_reload.ready";
 			default -> "msg.tacz_gun_level.skill.ready";
 		};
 	}

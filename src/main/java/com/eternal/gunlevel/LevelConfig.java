@@ -446,6 +446,8 @@ public class LevelConfig {
 	public double chipTacReloadDamage = 0.25;
 	/** 金芯片·战术换弹：换弹完成后伤害加成的有效秒数 */
 	public double chipTacReloadBonusSeconds = 3.0;
+	/** 战术换弹的主动「快速装填」冷却（秒） */
+	public double chipTacReloadSkillCooldown = 25.0;
 	/** 芯片触发提示（经验条上方那几行小字）总开关，游戏内「设置」里也能改 */
 	public boolean chipHintEnabled = true;
 	/** 提示第一行离屏幕底部多少像素（原版 action bar 在 72，默认再往上抬一行） */

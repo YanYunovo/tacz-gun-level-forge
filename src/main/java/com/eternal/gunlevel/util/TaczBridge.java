@@ -26,6 +26,18 @@ final class TaczBridge {
 		iGun.setCurrentAmmoCount(gun, iGun.getCurrentAmmoCount(gun) + amount);
 	}
 
+	/** 这一匣装满是多少发（带配件修正，也含我们挂同一条链上的迅雷减容/弹匣扩容） */
+	static int magazineCapacity(ItemStack gun) {
+		IGun iGun = IGun.getIGunOrNull(gun);
+		if (iGun == null) {
+			return 0;
+		}
+		return TimelessAPI.getCommonGunIndex(iGun.getGunId(gun))
+				.map(index -> com.tacz.guns.util.AttachmentDataUtils
+						.getAmmoCountWithAttachment(gun, index.getGunData()))
+				.orElse(0);
+	}
+
 	static ResourceLocation gunIdOf(ItemStack stack) {
 		IGun gun = IGun.getIGunOrNull(stack);
 		return gun == null ? null : gun.getGunId(stack);

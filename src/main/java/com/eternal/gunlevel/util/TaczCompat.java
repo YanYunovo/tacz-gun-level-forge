@@ -74,6 +74,14 @@ public final class TaczCompat {
 		return isGun(stack) && gunId.equals(gunIdOf(stack));
 	}
 
+	/** 这一匣装满是多少发（TACZ 的唯一真值）；没装前置返回 0 */
+	public static int magazineCapacity(ItemStack gun) {
+		if (!TACZ_LOADED || gun == null || gun.isEmpty()) {
+			return 0;
+		}
+		return TaczBridge.magazineCapacity(gun);
+	}
+
 	public static ResourceLocation gunIdOf(ItemStack stack) {
 		if (!TACZ_LOADED || stack.isEmpty()) {
 			return null;

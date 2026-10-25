@@ -1,8 +1,12 @@
 package com.eternal.gunlevel.effect;
 
 import com.eternal.gunlevel.GunLevelMod;
+import com.eternal.gunlevel.util.ChipHints;
+import com.eternal.gunlevel.util.TaczCompat;
 import com.tacz.guns.api.entity.ReloadState;
+import com.tacz.guns.api.item.IGun;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
@@ -62,9 +66,55 @@ public final class TacticalReloadState {
 
 	public static void tick(MinecraftServer server) {
 		PREVIOUS.keySet().removeIf(id -> server.getPlayerList().getPlayer(id) == null);
+		// 「快速装填已就绪」提示
+		server.getPlayerList().getPlayers().forEach(player -> {
+			Skill skill = SKILLS.get(player.getUUID());
+			if (skill == null || skill.announced || player.level().getGameTime() < skill.readyAt) {
+				return;
+			}
+			skill.announced = true;
+			ChipHints.show(player, Chip.TAC_RELOAD, ChipHints.SKILL_READY);
+		});
 	}
 
 	public static void clear() {
 		PREVIOUS.clear();
+		SKILLS.clear();
+	}
+
+	// ------------------------------------------------------------------ 主动
+
+	private static final class Skill {
+		long readyAt;
+		boolean announced;
+	}
+
+	/** 战术换弹的主动冷却（按玩家记） */
+	private static final Map<UUID, Skill> SKILLS = new ConcurrentHashMap<>();
+
+	/**
+	 * 主动「快速装填」：把主弹匣立刻填满。不需要元素核芯，装了芯片就能放。
+	 * 实现是把弹药数直接顶到容量 —— TACZ 的 tickReloadState 在下一拍发现弹匣已满，
+	 * 会自然走 FINISHING → NOT_RELOADING 收尾，换弹动画照常播完但不再吃子弹。
+	 */
+	public static void quickReload(ServerPlayer player) {
+		Skill skill = SKILLS.computeIfAbsent(player.getUUID(), id -> new Skill());
+		long now = player.level().getGameTime();
+		if (now < skill.readyAt) {
+			return;
+		}
+		ItemStack gun = player.getMainHandItem();
+		IGun iGun = IGun.getIGunOrNull(gun);
+		if (iGun == null) {
+			return;
+		}
+		int capacity = TaczCompat.magazineCapacity(gun);
+		if (capacity <= 0) {
+			return;
+		}
+		iGun.setCurrentAmmoCount(gun, capacity);
+		skill.readyAt = now + Math.max(1,
+				Math.round(GunLevelMod.CONFIG.chipTacReloadSkillCooldown * 20));
+		skill.announced = false;
 	}
 }

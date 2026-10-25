@@ -318,15 +318,15 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.5"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.vine.6"));
 		} else if (chip == Chip.ROCK_WARD) {
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.1",
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.1",
 					number(c.chipRockHeartBonusPerLevel)));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.2",
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.2",
 					percent(c.chipRockDamageReduction)));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.3"));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.4",
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.4",
 					number(c.chipRockActiveHeartsPerLevel), number(c.chipRockActiveCooldownSeconds)));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.5"));
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock.6"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.rock_ward.6"));
 		} else if (chip == Chip.REAP) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.reap",
 					percent(c.chipReapHealthRatio), percent(c.chipReapDamagePerLevel)));
@@ -343,6 +343,11 @@ public class TacticalChipItem extends Item {
 					percent(c.chipTacReloadPerLevel)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.2",
 					percent(c.chipTacReloadDamage), number(c.chipTacReloadBonusSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.4",
+					number(c.chipTacReloadSkillCooldown)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.6"));
 		}
 	}
 
