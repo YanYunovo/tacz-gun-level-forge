@@ -20,21 +20,30 @@ public class CrystallizationEffect extends MobEffect {
 	 * 所以只能自己记账，扣的时候扣记下的数。
 	 */
 	private static final Map<UUID, Float> GRANTED = new HashMap<>();
+	/** 这一条结晶链的上限（颗）：由 CombatState 在触发那一刻按那一枪的等级写进来并定格 */
+	private static final Map<UUID, Float> CAP = new HashMap<>();
 
 	public CrystallizationEffect() {
 		super(MobEffectCategory.BENEFICIAL, 0xE8C65A);
 	}
 
-	/** 一颗心 = 2 点吸收值 */
-	private static float heartsOf(int amplifier) {
-		return (float) (GunLevelMod.CONFIG.crystallizeHeartsPerLevel * 2.0 * (amplifier + 1));
+	/** 触发侧定格上限（颗）：之后换枪也不会把已经给出的心漏记 */
+	public static void setCap(UUID id, float capHearts) {
+		CAP.put(id, capHearts);
+	}
+
+	/** 第 amplifier+1 档应当给多少**点**吸收值（1 颗心 = 2 点）；被上限截住时就是上限 */
+	private static float pointsOf(UUID id, int amplifier) {
+		float base = (float) (GunLevelMod.CONFIG.crystallizeHeartsPerLevel * 2.0 * (amplifier + 1));
+		Float cap = CAP.get(id);
+		return cap == null ? base : Math.min(base, cap * 2.0F);
 	}
 
 	@Override
 	public void addAttributeModifiers(LivingEntity entity, AttributeMap attributes, int amplifier) {
 		// 每次结晶反应的进账恒定（crystallizeHeartsPerLevel 颗心）：升层只补差额。
 		// 原版升层只补调这个钩子（不会先调 removeAttributeModifiers），整份再加会让每颗心越叠越多。
-		float target = heartsOf(amplifier);
+		float target = pointsOf(entity.getUUID(), amplifier);
 		float already = GRANTED.getOrDefault(entity.getUUID(), 0.0F);
 		float delta = target - already;
 		if (delta > 0.0F) {
@@ -47,6 +56,7 @@ public class CrystallizationEffect extends MobEffect {
 	@Override
 	public void removeAttributeModifiers(LivingEntity entity, AttributeMap attributes, int amplifier) {
 		revoke(entity);
+		CAP.remove(entity.getUUID());
 		super.removeAttributeModifiers(entity, attributes, amplifier);
 	}
 
@@ -58,7 +68,7 @@ public class CrystallizationEffect extends MobEffect {
 	@Override
 	public void applyEffectTick(LivingEntity entity, int amplifier) {
 		UUID uuid = entity.getUUID();
-		float ceiling = heartsOf(amplifier);
+		float ceiling = pointsOf(uuid, amplifier);
 		Float mine = GRANTED.get(uuid);
 		if (mine == null) {
 			GRANTED.put(uuid, Math.min(ceiling, Math.max(0.0F, entity.getAbsorptionAmount())));

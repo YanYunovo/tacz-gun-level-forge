@@ -155,7 +155,10 @@ public final class ElementSkillState {
 		}
 		int level = LevelScaling.levelOfStack(player.getMainHandItem());
 		float points = (float) (GunLevelMod.CONFIG.chipRockActiveShieldPerLevel * level);
-		player.setAbsorptionAmount(player.getAbsorptionAmount() + points);
+		// 技能给的护盾同样受结晶上限约束（1 颗心 = 2 点）：到顶不再往上加，也不会削减已有护盾
+		float capPoints = (float) (CombatState.crystallizationCapHearts(level) * 2.0);
+		float current = player.getAbsorptionAmount();
+		player.setAbsorptionAmount(Math.max(current, Math.min(capPoints, current + points)));
 	}
 
 	/** 记冷却；在冷却就返回 null（什么都不发生），批下来返回记录 */

@@ -1,6 +1,7 @@
 package com.eternal.gunlevel.effect;
 
 import com.eternal.gunlevel.GunLevelMod;
+import com.eternal.gunlevel.LevelConfig;
 import com.eternal.gunlevel.entity.RockConstructEntity;
 import com.eternal.gunlevel.util.ChipHints;
 import net.minecraft.world.entity.Entity;
@@ -406,27 +407,35 @@ public final class CombatState {
 	 * buff 结束后自然从 0 重新叠。金心由效果本身按层数发放，见 CrystallizationEffect。
 	 * 磐岩壁垒把金心上限加 {@code rockLevel} 颗（层随金心数换算）。
 	 */
+	/**
+	 * 结晶金心的上限（颗）：基础档位 × 每档颗数，磐岩壁垒再按护盾折算加回来（1 金心 = 2 护盾）。
+	 * 「岩铠」也用它封顶，两处必须同源。
+	 */
+	public static double crystallizationCapHearts(int rockLevel) {
+		LevelConfig c = GunLevelMod.CONFIG;
+		return c.crystallizeMaxLevel * c.crystallizeHeartsPerLevel
+				+ c.chipRockShieldCapPerLevel * rockLevel / 2.0;
+	}
+
 	private static void applyCrystallize(LivingEntity player, int rockLevel) {
 		if (player == null || player.isRemoved()) {
 			return;
 		}
+		LevelConfig c = GunLevelMod.CONFIG;
+		double cap = crystallizationCapHearts(rockLevel);
 		MobEffectInstance current = player.getEffect(GunLevelMod.CRYSTALLIZATION);
-		int level = current == null ? 0 : current.getAmplifier() + 1;
-		// 磐岩壁垒的上限加成按护盾配（1 金心 = 2 护盾），这里折回「心」参与上限比较
-		double heartsCap = GunLevelMod.CONFIG.crystallizeMaxLevel
-				* GunLevelMod.CONFIG.crystallizeHeartsPerLevel
-				+ GunLevelMod.CONFIG.chipRockShieldCapPerLevel * rockLevel / 2.0;
-		double nextHearts = GunLevelMod.CONFIG.crystallizeHeartsPerLevel * (level + 1);
-		if (nextHearts > heartsCap) {
-			return;
-		}
-		int next = level + 1;
-		boolean full = nextHearts >= heartsCap;
-		double seconds = full
-				? GunLevelMod.CONFIG.crystallizeMaxSeconds
-				: GunLevelMod.CONFIG.crystallizeSeconds;
+		int stacks = current == null ? 0 : current.getAmplifier() + 1;
+		// 每次反应固定加 2 颗心；上限不一定被 2 整除（满级 15），最后一档就只补差额
+		double nowHearts = Math.min(cap, c.crystallizeHeartsPerLevel * stacks);
+		double nextHearts = Math.min(cap, c.crystallizeHeartsPerLevel * (stacks + 1));
+		// 到顶后不再涨心，只把持续时间续回满档 —— 否则这一次反应就白打了
+		boolean capped = nextHearts <= nowHearts;
+		int nextStacks = capped ? stacks : stacks + 1;
+		double seconds = nextHearts >= cap ? c.crystallizeMaxSeconds : c.crystallizeSeconds;
+		// 上限按「触发这一枪」的等级定格写进效果侧：换枪后不重算上限，已给的心不会被漏记
+		CrystallizationEffect.setCap(player.getUUID(), (float) cap);
 		player.addEffect(new MobEffectInstance(GunLevelMod.CRYSTALLIZATION,
-				(int) ticks(seconds), next - 1));
+				(int) ticks(seconds), nextStacks - 1));
 	}
 
 	/** 反应范围伤害/传导的目标判定：敌对生物可以，射手自己和其他玩家一律排除 */
