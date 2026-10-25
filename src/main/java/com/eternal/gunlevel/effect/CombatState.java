@@ -417,27 +417,39 @@ public final class CombatState {
 				+ c.chipRockShieldCapPerLevel * rockLevel / 2.0;
 	}
 
+	/**
+	 * 触发一次结晶反应：叠一层。
+	 *
+	 * <p>规则（2026-10-25 用户定稿）：每次反应固定 +2 颗心（一层），层数上限由
+	 * {@link #crystallizationCapHearts(int)} 决定（基础 5 层 = 10 颗心，磐岩壁垒每级 +1 颗心的上限）；
+	 * 没满层时每层 3 秒，叠满的那一层给 10 秒；**满层之后这一次反应什么都不做**
+	 * （不涨心、不续时、也不补被打掉的心 —— buff 到点清零，下一次反应正好从 0 层开始）。
+	 */
 	private static void applyCrystallize(LivingEntity player, int rockLevel) {
 		if (player == null || player.isRemoved()) {
 			return;
 		}
 		LevelConfig c = GunLevelMod.CONFIG;
-		double cap = crystallizationCapHearts(rockLevel);
+		double capPoints = crystallizationCapHearts(rockLevel) * 2.0;   // 1 颗心 = 2 点吸收值
+		double perLayerPoints = c.crystallizeHeartsPerLevel * 2.0;
+		int maxLayers = (int) Math.ceil(capPoints / perLayerPoints);
 		MobEffectInstance current = player.getEffect(GunLevelMod.CRYSTALLIZATION);
-		int stacks = current == null ? 0 : current.getAmplifier() + 1;
-		// 每次反应固定加 2 颗心；上限不一定被 2 整除（满级 15），最后一档就只补差额
-		double nowHearts = Math.min(cap, c.crystallizeHeartsPerLevel * stacks);
-		double nextHearts = Math.min(cap, c.crystallizeHeartsPerLevel * (stacks + 1));
-		// 上限按「触发这一枪」的等级定格写进效果侧：换枪后不重算上限，已给的心不会被漏记
-		CrystallizationEffect.setCap(player.getUUID(), (float) cap);
-		if (nextHearts <= nowHearts) {
-			// 已经到顶：这一次反应什么都不做 —— 不涨心、不续时、也不补被打掉的心
-			// （2026-10-25 用户口径：满级后就不该再反应；buff 到点自然清零，下一次反应正好从 0 开始）
+		int layers = current == null ? 0 : current.getAmplifier() + 1;
+		if (layers >= maxLayers) {
 			return;
 		}
-		double seconds = nextHearts >= cap ? c.crystallizeMaxSeconds : c.crystallizeSeconds;
+		// 上限按「触发这一枪」的等级定格写进效果侧：换枪后不重算，到期也不会扣错别人的护盾
+		CrystallizationEffect.setCap(player.getUUID(), (float) capPoints);
+		// 总护盾（主动技能 + 结晶）已经顶到上限：这一层加不上，就当没发生
+		if (CrystallizationEffect.layerGrant(player) <= 0.0F) {
+			return;
+		}
+		int nextLayers = layers + 1;
+		double seconds = nextLayers * perLayerPoints >= capPoints
+				? c.crystallizeMaxSeconds
+				: c.crystallizeSeconds;
 		player.addEffect(new MobEffectInstance(GunLevelMod.CRYSTALLIZATION,
-				(int) ticks(seconds), stacks));
+				(int) ticks(seconds), nextLayers - 1));
 	}
 
 	/** 反应范围伤害/传导的目标判定：敌对生物可以，射手自己和其他玩家一律排除 */
