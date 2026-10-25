@@ -16,6 +16,8 @@ public final class ChipHints {
 	public static final int AURORA_READY = 1;
 	/** 提示文案：「风的护佑已就绪」——主动技能冷却走完那一下，玩家该按的是技能键 */
 	public static final int SKILL_READY = 2;
+	/** 提示文案：「其他主动技能冷却中」——这一键被全局技能锁挡住了 */
+	public static final int SKILL_LOCKED = 3;
 
 	private ChipHints() {
 	}

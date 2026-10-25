@@ -63,7 +63,8 @@ public final class GunLevelData {
 			lore.add(nbtString("§e元素核芯：" + element + "｜与不同元素命中触发反应"));
 		}
 		// 芯片只标「装了哪颗」，具体数值看芯片自己的说明
-		for (Chip chip : GunChipData.get(stack)) {
+		// 按安装顺序列：技能键也是按这个顺序取第一颗主动技能，面板必须一致
+		for (Chip chip : GunChipData.ordered(stack)) {
 			lore.add(nbtString("§a已安装芯片：" + chip.displayName()));
 		}
 		display.put("Lore", lore);

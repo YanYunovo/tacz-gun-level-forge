@@ -81,15 +81,17 @@ public final class WindGuardState {
 	 * 它这时候还在冷却，这一次按键就什么都不做，不会替补去放第二格那颗的技能。
 	 */
 	public static void requestSkill(ServerPlayer player) {
-		// 全局锁：刚放过别的主动技能时，在它冷却走完前这一键什么都不做
-		// （2026-10-25 用户口径：不许拿一排带主动技能的枪当摔炮轮流点）
-		if (SkillLock.locked(player, player.level().getGameTime())) {
-			return;
-		}
 		ItemStack gun = player.getMainHandItem();
+		long now = player.level().getGameTime();
 		for (Chip chip : GunChipData.ordered(gun)) {
 			if (!chip.hasActiveSkill()) {
 				continue;
+			}
+			// 全局锁：别的主动技能还在冷却时这一键不放技能，只飘一行「其他主动技能冷却中」
+			// （2026-10-25 用户口径：不许拿一排带主动技能的枪当摔炮轮流点）
+			if (SkillLock.locked(player, now)) {
+				ChipHints.show(player, chip, ChipHints.SKILL_LOCKED);
+				return;
 			}
 			// 一次按键只交给「槽位顺序里第一颗有主动技能的芯片」，它在冷却就什么都不做，不替补放第二格那颗
 			switch (chip) {

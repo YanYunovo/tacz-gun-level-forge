@@ -46,6 +46,7 @@ public final class ChipHud implements IGuiOverlay {
 			Component line = switch (kinds[i]) {
 				case ChipHints.AURORA_READY -> Component.translatable("msg.tacz_gun_level.aurora.ready");
 				case ChipHints.SKILL_READY -> Component.translatable(CHIPS[i].skillReadyKey());
+				case ChipHints.SKILL_LOCKED -> Component.translatable("msg.tacz_gun_level.skill.locked");
 				default -> Component.translatable("msg.tacz_gun_level.chip.trigger",
 						Component.translatable(CHIPS[i].nameKey()));
 			};
