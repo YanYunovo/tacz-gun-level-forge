@@ -39,17 +39,27 @@ public class CrystallizationEffect extends MobEffect {
 		return cap == null ? base : Math.min(base, cap * 2.0F);
 	}
 
+	/**
+	 * 把金心补到「当前档位该有的目标值」：先按实际吸收值校正记录（被打掉的部分视为已失效），再补差额。
+	 * 所以金心被打光之后，下一次结晶反应会把它们补回来；到上限后也靠它留住金心，buff 不会是空壳。
+	 */
+	public static void refill(LivingEntity entity, int amplifier) {
+		UUID id = entity.getUUID();
+		float target = pointsOf(id, amplifier);
+		float current = entity.getAbsorptionAmount();
+		float already = Math.min(GRANTED.getOrDefault(id, 0.0F), current);
+		float delta = target - already;
+		if (delta > 0.0F) {
+			entity.setAbsorptionAmount(current + delta);
+		}
+		GRANTED.put(id, target);
+	}
+
 	@Override
 	public void addAttributeModifiers(LivingEntity entity, AttributeMap attributes, int amplifier) {
 		// 每次结晶反应的进账恒定（crystallizeHeartsPerLevel 颗心）：升层只补差额。
 		// 原版升层只补调这个钩子（不会先调 removeAttributeModifiers），整份再加会让每颗心越叠越多。
-		float target = pointsOf(entity.getUUID(), amplifier);
-		float already = GRANTED.getOrDefault(entity.getUUID(), 0.0F);
-		float delta = target - already;
-		if (delta > 0.0F) {
-			entity.setAbsorptionAmount(entity.getAbsorptionAmount() + delta);
-			GRANTED.put(entity.getUUID(), target);
-		}
+		refill(entity, amplifier);
 		super.addAttributeModifiers(entity, attributes, amplifier);
 	}
 
@@ -74,6 +84,9 @@ public class CrystallizationEffect extends MobEffect {
 			GRANTED.put(uuid, Math.min(ceiling, Math.max(0.0F, entity.getAbsorptionAmount())));
 		} else if (mine > ceiling) {
 			GRANTED.put(uuid, ceiling);
+		} else if (mine > entity.getAbsorptionAmount()) {
+			// 金心被打掉了：记录跟着缩水，下一次反应才补得回来，到期时也不会多扣别人的护盾
+			GRANTED.put(uuid, Math.max(0.0F, entity.getAbsorptionAmount()));
 		}
 	}
 

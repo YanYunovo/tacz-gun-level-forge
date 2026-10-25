@@ -428,14 +428,19 @@ public final class CombatState {
 		// 每次反应固定加 2 颗心；上限不一定被 2 整除（满级 15），最后一档就只补差额
 		double nowHearts = Math.min(cap, c.crystallizeHeartsPerLevel * stacks);
 		double nextHearts = Math.min(cap, c.crystallizeHeartsPerLevel * (stacks + 1));
-		// 到顶后不再涨心，只把持续时间续回满档 —— 否则这一次反应就白打了
-		boolean capped = nextHearts <= nowHearts;
-		int nextStacks = capped ? stacks : stacks + 1;
-		double seconds = nextHearts >= cap ? c.crystallizeMaxSeconds : c.crystallizeSeconds;
 		// 上限按「触发这一枪」的等级定格写进效果侧：换枪后不重算上限，已给的心不会被漏记
 		CrystallizationEffect.setCap(player.getUUID(), (float) cap);
+		if (nextHearts <= nowHearts) {
+			// 已经到顶：不涨心、**也不续时**（2026-10-25 用户口径，免得 buff 挂成空壳白送抗性错觉）；
+			// 但要把被打掉的金心补回当前档位，这样满级之后继续反应仍然有意义
+			if (current != null) {
+				CrystallizationEffect.refill(player, current.getAmplifier());
+			}
+			return;
+		}
+		double seconds = nextHearts >= cap ? c.crystallizeMaxSeconds : c.crystallizeSeconds;
 		player.addEffect(new MobEffectInstance(GunLevelMod.CRYSTALLIZATION,
-				(int) ticks(seconds), nextStacks - 1));
+				(int) ticks(seconds), stacks));
 	}
 
 	/** 反应范围伤害/传导的目标判定：敌对生物可以，射手自己和其他玩家一律排除 */
