@@ -32,9 +32,15 @@ public class CrystallizationEffect extends MobEffect {
 
 	@Override
 	public void addAttributeModifiers(LivingEntity entity, AttributeMap attributes, int amplifier) {
-		float hearts = heartsOf(amplifier);
-		GRANTED.put(entity.getUUID(), hearts);
-		entity.setAbsorptionAmount(entity.getAbsorptionAmount() + hearts);
+		// 每次结晶反应的进账恒定（crystallizeHeartsPerLevel 颗心）：升层只补差额。
+		// 原版升层只补调这个钩子（不会先调 removeAttributeModifiers），整份再加会让每颗心越叠越多。
+		float target = heartsOf(amplifier);
+		float already = GRANTED.getOrDefault(entity.getUUID(), 0.0F);
+		float delta = target - already;
+		if (delta > 0.0F) {
+			entity.setAbsorptionAmount(entity.getAbsorptionAmount() + delta);
+			GRANTED.put(entity.getUUID(), target);
+		}
 		super.addAttributeModifiers(entity, attributes, amplifier);
 	}
 

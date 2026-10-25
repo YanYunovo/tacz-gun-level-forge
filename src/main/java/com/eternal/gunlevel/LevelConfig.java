@@ -422,6 +422,8 @@ public class LevelConfig {
 	public double chipVineRootCooldownSeconds = 18.0;
 	/** 金芯片·磐岩壁垒：结晶护盾上限的提升（护盾，按永恒改装等级放大；1 金心 = 2 护盾） */
 	public double chipRockShieldCapPerLevel = 2.0;
+	/** 金芯片·磐岩壁垒：有护盾吸收时的受伤减免比例（按永恒改装等级放大） */
+	public double chipRockDamageReduction = 0.05;
 	/** 金芯片·磐岩壁垒：「岩铠」立刻获得的护盾（按永恒改装等级放大） */
 	public double chipRockActiveShieldPerLevel = 6.0;
 	/** 金芯片·磐岩壁垒：「岩铠」冷却秒数 */
