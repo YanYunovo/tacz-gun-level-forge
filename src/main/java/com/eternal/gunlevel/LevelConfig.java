@@ -268,6 +268,8 @@ public class LevelConfig {
 	public double chipRoarHeadDamagePerLevel = 0.04;
 	/** 烈焰咆哮：身体命中判成爆头的初始概率 */
 	public double chipRoarFakeHeadChance = 0.10;
+	/** 烈焰咆哮：tooltip 里「每 1% 暴击率」的那个 1%；走占位符传值，避免译文里的字面 % 打断格式化 */
+	public double chipRoarCritUnit = 0.01;
 	/** 烈焰咆哮：暴击率每 1% 给上面那个概率加多少（0.005 = 0.5%） */
 	public double chipRoarFakeHeadPerCrit = 0.005;
 	/** 烈焰咆哮：概率加成最多累计到多少（0.40 = +40%） */

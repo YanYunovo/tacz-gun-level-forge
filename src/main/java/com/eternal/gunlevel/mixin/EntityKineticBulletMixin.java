@@ -387,13 +387,20 @@ public abstract class EntityKineticBulletMixin {
 			// 触发强攻那发同时走穿甲和增伤：增伤乘在整段伤害上，两段都算到
 			scaled *= (float) GunLevelMod.CONFIG.chipArmorPierceMultiplier;
 		}
-		// 紫芯片·抱团取暖：光环跟人不跟枪（射手自己不用装），挂在枪械芯片链外，
-		// 免得没升级的枪吃不到；也不能跟着强击连发的额外攻击再乘一遍（那发的伤害已含光环）
-		if (!this.gunlevel$barraging && this.gunlevel$shooter != null) {
+		// 紫芯片·抱团取暖：已经并进共用乘区（相加），这里只兜「没升级的枪」——
+		// 等级 0 根本不进 applyScale，光环不能跟着等级门槛一起消失。
+		// 强击连发的额外攻击伤害已含光环，不再乘第二次。
+		if (this.gunlevel$level <= 0 && !this.gunlevel$barraging
+				&& this.gunlevel$shooter != null) {
 			double team = TeamworkState.bonus(this.gunlevel$shooter);
 			if (team > 0) {
 				scaled *= 1.0F + (float) team;
 			}
+		}
+		// 固定点数区：公式里排在最终伤害倍率之后 —— 净化领域只加在直击上，
+		// 不吃 ×2、也不吃暴击/爆头/加成。强击连发的额外攻击传进来的伤害已含这份点数，不再加第二遍。
+		if (!this.gunlevel$barraging && this.gunlevel$shooter != null) {
+			scaled += (float) BloomDomain.purifyAttackBonus(this.gunlevel$shooter, this.gunlevel$level);
 		}
 		return scaled;
 	}
@@ -522,25 +529,20 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$barraging) {
 			return damage;
 		}
-		// 咆哮一击：这一发是特殊弹，面板基础伤害直接改成原本的 400%（乘在点数档之前）
-		if (this.gunlevel$roarRound) {
-			damage *= (float) GunLevelMod.CONFIG.chipRoarDamageMultiplier;
-		}
-		// 高能弹匣的点数加在面板伤害那一档，所以要在等级倍率之前进账（会被 damageScale 再乘一遍）
+		// 咆哮一击提升的是「基础伤害」的倍率 —— 基础伤害 = 面板 + 基础区（高能弹匣点数），
+		// 所以倍率必须套在两者相加之后，点数也一起翻倍；乘在等级区之前。
 		float base = this.gunlevel$highMag
 				? damage + (float) LevelScaling.highMagBasePoints(this.gunlevel$level)
 				: damage;
+		if (this.gunlevel$roarRound) {
+			base *= (float) GunLevelMod.CONFIG.chipRoarDamageMultiplier;
+		}
 		float scaled = base * (float) LevelScaling.damageScale(this.gunlevel$level);
 		// 先定「这发算不算打头」：势如破竹的非头部档、两颗头部增伤、咆哮的刷新计数都用同一个答案
 		gunlevel$resolveHeadHit();
 		scaled *= gunlevel$critFactor();
 		scaled *= gunlevel$commonDamageFactor(true);
 		scaled *= gunlevel$headFactor();
-		// 净化领域：射手站在已点亮的苏生领域里时，这一发末尾再附加点数。
-		// 固定点数口径，留在链末且不进爆炸段（爆炸没有「这一发面板」的概念）。
-		if (this.gunlevel$shooter != null) {
-			scaled += (float) BloomDomain.purifyAttackBonus(this.gunlevel$shooter, this.gunlevel$level);
-		}
 		return scaled;
 	}
 
@@ -577,6 +579,9 @@ public abstract class EntityKineticBulletMixin {
 	/**
 	 * 直击与爆炸**共用**的一整串「伤害加成」乘区 —— 全部芯片的百分比档只写在这里一份。
 	 *
+	 * <p>整区口径是 {@code 1 + Σ各档百分比}，**相加不连乘**：档位多了各自连乘会把后期伤害滚成雪球。
+	 * 抱团取暖的光环也并在这里（它跟人不跟枪，但同属伤害加成），等级 0 的枪另走 scaledDamage 兜底。
+	 *
 	 * <p>两个调用方的差别只有 {@code victimKnown}：爆炸打在方块上没有单个命中目标，
 	 * 依赖「目标血量 / 射手到目标的距离」的三档（抵近、远程、爆裂收割）就跳过；其余玩家侧状态
 	 * （层数、窗口、弹匣余量、自身血量、静止时长）两边完全一样。
@@ -592,97 +597,89 @@ public abstract class EntityKineticBulletMixin {
 		LevelConfig c = GunLevelMod.CONFIG;
 		long now = this.gunlevel$shooter == null
 				? 0L : this.gunlevel$shooter.level().getGameTime();
-		float scale = 1.0F;
+		// 整条 E 乘区按 1 + Σ百分比 **相加**：十几个 +15% 各自连乘会把后期伤害滚成雪球，
+		// 相加才是「伤害加成」该有的口径，调数值时每个芯片的收益也能直接读出来。
+		float bonus = 0.0F;
 		if (this.gunlevel$highMag) {
-			scale *= (float) LevelScaling.highMagBonusScale(this.gunlevel$level);
+			bonus += (float) (c.chipHighMagBonusPerLevel * this.gunlevel$level);
 		}
 		// 势如破竹：非头部档（头部口径全局只有 headHit 一个）
 		if (this.gunlevel$momentumPower > 0 && !this.gunlevel$headHit) {
-			scale *= 1.0F + (float) (c.chipMomentumDamagePerLevel
+			bonus += (float) (c.chipMomentumDamagePerLevel
 					* this.gunlevel$level * this.gunlevel$momentumPower);
 		}
 		// 愈战愈勇
 		if (this.gunlevel$fervor && this.gunlevel$shooter != null) {
-			double fervor = FervorState.bonus(this.gunlevel$shooter, now, this.gunlevel$level);
-			if (fervor > 0) {
-				scale *= 1.0F + (float) fervor;
-			}
+			bonus += (float) FervorState.bonus(this.gunlevel$shooter, now, this.gunlevel$level);
 		}
 		// 蓝芯片·伤害改造
 		if (this.gunlevel$chips.contains(Chip.DAMAGE_MOD)) {
-			scale *= 1.0F + (float) c.chipBlueDamage;
+			bonus += (float) c.chipBlueDamage;
 		}
 		// 紫芯片·抵近射击 / 远程打击：要看这次命中目标的距离
 		if (victimKnown && this.gunlevel$chips.contains(Chip.CLOSE_QUARTERS)
 				&& gunlevel$withinCloseRange()) {
-			scale *= 1.0F + (float) c.chipPurpleCloseDamage;
+			bonus += (float) c.chipPurpleCloseDamage;
 		}
 		if (victimKnown && this.gunlevel$chips.contains(Chip.LONG_SHOT)
 				&& gunlevel$beyondLongRange()) {
-			scale *= 1.0F + (float) c.chipPurpleLongShotDamage;
+			bonus += (float) c.chipPurpleLongShotDamage;
 		}
 		// 紫芯片·凝神打击 / 背水一战：射手自己的血量
 		if (this.gunlevel$chips.contains(Chip.FOCUSED_STRIKE)
 				&& gunlevel$shooterHealthRatio() > c.chipPurpleFocusHealthRatio) {
-			scale *= 1.0F + (float) c.chipPurpleFocusDamage;
+			bonus += (float) c.chipPurpleFocusDamage;
 		}
 		if (this.gunlevel$chips.contains(Chip.LAST_STAND)
 				&& gunlevel$shooterHealthRatio() < c.chipPurpleLastStandHealthRatio) {
-			scale *= 1.0F + (float) c.chipPurpleLastStandDamage;
+			bonus += (float) c.chipPurpleLastStandDamage;
 		}
 		// 紫芯片·节奏射击：射手此刻的层数
 		if (this.gunlevel$rhythm && this.gunlevel$shooter != null) {
-			scale *= 1.0F + (float) RhythmState.bonus(this.gunlevel$shooter, now);
+			bonus += (float) RhythmState.bonus(this.gunlevel$shooter, now);
 		}
 		// 紫芯片·勇者无惧
 		if (this.gunlevel$chips.contains(Chip.FEARLESS)) {
-			scale *= 1.0F + (float) c.chipPurpleFearlessDamage;
+			bonus += (float) c.chipPurpleFearlessDamage;
 		}
 		// 狩猎时刻：标记期间攒够 15 次命中那档
 		if (this.gunlevel$hunt && this.gunlevel$shooter != null) {
-			double bonus = HuntState.damageBonus(this.gunlevel$shooter, now);
-			if (bonus > 0) {
-				scale *= 1.0F + (float) bonus;
-			}
+			bonus += (float) HuntState.damageBonus(this.gunlevel$shooter, now);
 		}
 		// 紫芯片第二批：乘胜追击 / 先发制人 / 屏息凝神 / 精打细算
 		if (this.gunlevel$chips.contains(Chip.KILLING_SPREE) && this.gunlevel$shooter != null) {
-			double spree = SpreeState.bonus(this.gunlevel$shooter, now);
-			if (spree > 0) {
-				scale *= 1.0F + (float) spree;
-			}
+			bonus += (float) SpreeState.bonus(this.gunlevel$shooter, now);
 		}
 		if (this.gunlevel$chips.contains(Chip.OPENING_STRIKE) && this.gunlevel$shooter != null) {
-			double opening = OpeningState.bonus(this.gunlevel$shooter, now);
-			if (opening > 0) {
-				scale *= 1.0F + (float) opening;
-			}
+			bonus += (float) OpeningState.bonus(this.gunlevel$shooter, now);
 		}
 		if (this.gunlevel$chips.contains(Chip.HOLD_BREATH)
 				&& StillnessState.isStill(this.gunlevel$shooter, c.chipPurpleHoldStillSeconds)) {
-			scale *= 1.0F + (float) c.chipPurpleHoldStillDamage;
+			bonus += (float) c.chipPurpleHoldStillDamage;
 		}
 		if (this.gunlevel$lowMag) {
-			scale *= 1.0F + (float) c.chipPurpleLowMagDamage;
+			bonus += (float) c.chipPurpleLowMagDamage;
 		}
 		// 金芯片·爆裂收割：目标血量低于阈值（打的不是活物就不算）
 		if (victimKnown && this.gunlevel$chips.contains(Chip.REAP)
 				&& this.gunlevel$hitTarget instanceof LivingEntity
 				&& gunlevel$targetHealthRatio() < c.chipReapHealthRatio) {
-			scale *= 1.0F + (float) (c.chipReapDamagePerLevel * this.gunlevel$level);
+			bonus += (float) (c.chipReapDamagePerLevel * this.gunlevel$level);
 		}
 		// 金芯片·荣誉勋章
 		if (this.gunlevel$chips.contains(Chip.MEDAL) && this.gunlevel$shooter != null) {
-			double medal = MedalState.bonus(this.gunlevel$shooter, now, this.gunlevel$level);
-			if (medal > 0) {
-				scale *= 1.0F + (float) medal;
-			}
+			bonus += (float) MedalState.bonus(this.gunlevel$shooter, now, this.gunlevel$level);
 		}
 		// 金芯片·战术换弹：换弹完成窗口内（出膛定格）
 		if (this.gunlevel$tacReload) {
-			scale *= 1.0F + (float) c.chipTacReloadDamage;
+			bonus += (float) c.chipTacReloadDamage;
 		}
-		return scale;
+		// 紫芯片·抱团取暖：光环跟人不跟枪（射手自己不用装），并进同一个相加乘区，
+		// 直击和爆炸一起享用；没升级的枪不进这个方法，由 scaledDamage 里的兜底段照顾
+		if (this.gunlevel$shooter != null) {
+			bonus += (float) TeamworkState.bonus(this.gunlevel$shooter);
+		}
+		return 1.0F + bonus;
 	}
 
 	/**
@@ -693,17 +690,19 @@ public abstract class EntityKineticBulletMixin {
 	@Unique
 	private float gunlevel$headFactor() {
 		LevelConfig c = GunLevelMod.CONFIG;
-		float scale = 1.0F;
-		if (this.gunlevel$headHit) {
-			// 这一档是烈焰咆哮带来的，没装这颗芯片的枪不该白拿
-			if (this.gunlevel$flameRoar) {
-				scale *= 1.0F + (float) (c.chipRoarHeadDamagePerLevel * this.gunlevel$level);
-			}
-			if (this.gunlevel$chips.contains(Chip.HEAD_DAMAGE_MOD)) {
-				scale *= 1.0F + (float) c.chipBlueHeadDamage;
-			}
+		if (!this.gunlevel$headHit) {
+			return 1.0F;
 		}
-		return scale;
+		// 同一乘区内一律相加：烈焰咆哮与弱点改造都只是「爆头伤害 +x%」，各自乘会互相放大
+		float bonus = 0.0F;
+		// 这一档是烈焰咆哮带来的，没装这颗芯片的枪不该白拿
+		if (this.gunlevel$flameRoar) {
+			bonus += (float) (c.chipRoarHeadDamagePerLevel * this.gunlevel$level);
+		}
+		if (this.gunlevel$chips.contains(Chip.HEAD_DAMAGE_MOD)) {
+			bonus += (float) c.chipBlueHeadDamage;
+		}
+		return 1.0F + bonus;
 	}
 
 	/**

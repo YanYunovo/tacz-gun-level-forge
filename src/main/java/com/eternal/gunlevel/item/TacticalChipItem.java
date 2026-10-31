@@ -7,11 +7,15 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.ChatFormatting;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 战术芯片：所有芯片共用一张贴图，靠物品名与说明区分。
@@ -38,6 +42,8 @@ public class TacticalChipItem extends Item {
 	@Override
 	public void appendHoverText(ItemStack stack, Level world, List<Component> tooltip, TooltipFlag flag) {
 		LevelConfig c = GunLevelMod.CONFIG;
+		// 描述里所有数值与属性名统一染黄，名字与品质行不动：只处理本方法追加的那几行
+		int start = tooltip.size();
 		// 一行只讲一件事，且只用用户给的原话：1.20.1 的 tooltip 不换行，长行会被屏幕右边裁掉
 		if (chip == Chip.CHAIN_CRIT) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.chain_crit.1",
@@ -166,7 +172,7 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.5",
 					percent(c.chipRoarFakeHeadChance)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.6",
-					percent(c.chipRoarFakeHeadPerCrit)));
+					percent(c.chipRoarCritUnit), percent(c.chipRoarFakeHeadPerCrit)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.7",
 					percent(c.chipRoarFakeHeadBonusCap)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.flame_roar.8"));
@@ -349,6 +355,38 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.5"));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.6"));
 		}
+		for (int i = start; i < tooltip.size(); i++) {
+			tooltip.set(i, highlight(tooltip.get(i)));
+		}
+	}
+
+	/**
+	 * 数值与属性名染黄（用户口径 2026-10-25）：数字带单位算一段，乘区名与其它属性名各算一段，
+	 * 中间的文字保持原色。长词放前面，免得「结晶护盾上限」被「护盾」先截断。
+	 */
+	private static final Pattern TIP_HIGHLIGHT = Pattern.compile(
+			"基础伤害|伤害加成|暴击伤害|爆头伤害|最终伤害|固定伤害增加|永恒改装等级"
+					+ "|结晶护盾上限|弹匣容量|弹匣余量|命中次数|抗性提升|伤害减免|移动速度|换弹时间"
+					+ "|暴击率|射速|移速加成|散布|弹速|弹匣|护盾|护甲值|护甲|生命值|血量|金心|凝寒"
+					+ "|嘲讽值|穿透|层数|概率|几率|冷却时间|冷却|持续时间|上限|半径|×"
+					+ "|\\d+(?:\\.\\d+)?\\s*(?:%|点|秒|格|层|次|发|颗|名|个|倍)?");
+
+	private static Component highlight(Component line) {
+		String text = line.getString();
+		MutableComponent out = Component.literal("");
+		Matcher matcher = TIP_HIGHLIGHT.matcher(text);
+		int last = 0;
+		while (matcher.find()) {
+			if (matcher.start() > last) {
+				out.append(Component.literal(text.substring(last, matcher.start())));
+			}
+			out.append(Component.literal(matcher.group()).withStyle(ChatFormatting.YELLOW));
+			last = matcher.end();
+		}
+		if (last < text.length()) {
+			out.append(Component.literal(text.substring(last)));
+		}
+		return out;
 	}
 
 	/** 0.055 -> "5.5%" */
