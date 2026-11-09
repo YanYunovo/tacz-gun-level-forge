@@ -84,6 +84,94 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.barrage.3",
 					percent(c.chipBarrageDamageRatio)));
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.barrage.4"));
+		} else if (chip == Chip.BURST_SHOT) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.1"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.2",
+					percent(c.chipBurstBaseChance), percent(c.chipBurstSegmentRatio)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.3",
+					percent(c.chipBurstFireRateStep), percent(c.chipBurstFireRatePerStep)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.4",
+					percent(c.chipBurstFireRateCap)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.5",
+					percent(c.chipBurstStackPerTrigger)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.6",
+					percent(c.chipBurstStackPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.7",
+					number(c.chipBurstChargePerHit)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.8",
+					number(c.chipBurstChargeMax), number(c.chipBurstOverloadSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.9"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.10",
+					percent(c.chipBurstOverloadExtraChance), percent(c.chipBurstSegmentRatio)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.11"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.12",
+					number(c.chipBurstDisableSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.burst_shot.13"));
+		} else if (chip == Chip.EXTREME_FIRE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.1",
+					percent(c.chipExtremeDamagePenalty)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.2",
+					percent(c.chipExtremeFireRate)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.6"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.7"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.8",
+					percent(c.chipExtremeExplosionDamageBonus)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.9",
+					percent(c.chipExtremeFireRatePerStackPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.10",
+					percent(c.chipExtremeExplosionRadiusPerStackPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.11",
+					percent(c.chipExtremeFireRateCap), percent(c.chipExtremeExplosionRadiusCap)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.12"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.13"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.14"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.extreme_fire.15"));
+		} else if (chip == Chip.ICE_SPIKE) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.1",
+					percent(c.chipIceSpikeDamagePerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.2"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.3"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.4",
+					percent(c.chipIceSpikeSlow)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.5"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.6"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.7",
+					percent(c.chipIceSpikeDotRatio)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.8",
+					number(c.chipIceSpikeDotSeconds)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.9"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.10"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.11",
+					percent(c.chipIceSpikeFinalDamageBonus)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.ice_spike.12"));
+		} else if (chip == Chip.GOGGLES) {
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.1"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.2"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.3",
+					number(c.chipGogglesMaxPoints)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.5",
+					number(c.chipGogglesHeadThreshold), percent(c.chipGogglesHeadDamage)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.6",
+					number(c.chipGogglesSpeedThreshold), percent(c.chipGogglesSpeed)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.7",
+					number(c.chipGogglesActiveThreshold)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.8"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.9",
+					number(c.chipGogglesDrainThreshold), number(c.chipGogglesDrainLow)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.10",
+					number(c.chipGogglesDrainThreshold), number(c.chipGogglesDrainPerSecond)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.11",
+					number(c.chipGogglesHeadshotThreshold), percent(c.chipGogglesHeadshotChance)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.12",
+					percent(c.chipGogglesAmmoSavePerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.13",
+					percent(c.chipGogglesAmmoSavePerFireRate), percent(c.chipGogglesAmmoSaveCap)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.14"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.goggles.15"));
 		} else if (chip == Chip.MOMENTUM) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.momentum.1",
 					number(c.chipMomentumRange)));
@@ -342,8 +430,14 @@ public class TacticalChipItem extends Item {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.medal.2",
 					number(c.chipMedalResetSeconds)));
 		} else if (chip == Chip.SALVAGE) {
-			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage",
-					number(c.chipSalvageAmmoPerLevel)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage.1"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage.2",
+					percent(c.chipSalvageMagazineRatio)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage.3",
+					number(c.chipSalvageMinAmmo)));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage.4"));
+			tooltip.add(Component.translatable("item.tacz_gun_level.chip.salvage.5",
+					percent(c.chipSalvageCapacityCapRatio)));
 		} else if (chip == Chip.TAC_RELOAD) {
 			tooltip.add(Component.translatable("item.tacz_gun_level.chip.tac_reload.1",
 					percent(c.chipTacReloadPerLevel)));
@@ -366,7 +460,8 @@ public class TacticalChipItem extends Item {
 	 */
 	private static final Pattern TIP_HIGHLIGHT = Pattern.compile(
 			"基础伤害|伤害加成|暴击伤害|爆头伤害|最终伤害|固定伤害增加|永恒改装等级"
-					+ "|结晶护盾上限|弹匣容量|弹匣余量|命中次数|抗性提升|伤害减免|移动速度|换弹时间"
+					+ "|结晶护盾上限|弹匣容量|弹匣余量|命中次数|抗性提升|伤害减免|移动速度|换弹时间|爆炸范围"
+					+ "|持续伤害|刺骨寒意|减速"
 					+ "|暴击率|射速|移速加成|散布|弹速|弹匣|护盾|护甲值|护甲|生命值|血量|金心|凝寒"
 					+ "|嘲讽值|穿透|层数|概率|几率|冷却时间|冷却|持续时间|上限|半径|×"
 					+ "|\\d+(?:\\.\\d+)?\\s*(?:%|点|秒|格|层|次|发|颗|名|个|倍)?");

@@ -200,6 +200,8 @@ public class ChipMenu extends AbstractContainerMenu {
 
 	/** 拆卸：原枪被少一颗芯片的成品替换，卸下的芯片进卸出槽 */
 	private void performUnload() {
+		// 上一次拆出的芯片还在卸出槽：先安全送回背包/脚下，不能被下一次拆卸覆盖。
+		flushTaken();
 		Chip removed = GunChipData.removeLast(container.getItem(SLOT_UNLOAD_GUN));
 		container.setItem(SLOT_UNLOAD_GUN, ItemStack.EMPTY);
 		container.setItem(SLOT_UNLOADED, ItemStack.EMPTY);
@@ -208,6 +210,19 @@ public class ChipMenu extends AbstractContainerMenu {
 		}
 		container.setChanged();
 		updateResult();
+	}
+
+	private void flushTaken() {
+		ItemStack taken = container.getItem(SLOT_TAKEN);
+		if (taken.isEmpty()) {
+			return;
+		}
+		ItemStack moving = taken.copy();
+		container.setItem(SLOT_TAKEN, ItemStack.EMPTY);
+		Player player = playerInventory.player;
+		if (!player.getInventory().add(moving)) {
+			player.drop(moving, false);
+		}
 	}
 
 	/** 卸出的芯片先攒在卸出槽；槽里是别的芯片就直接塞回玩家背包，别把它变没 */

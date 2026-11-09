@@ -167,6 +167,97 @@ public class LevelConfig {
 	public double chipBarrageChancePerLevel = 0.06;
 	/** 强击连发：额外攻击的伤害是这一次命中的百分之几 */
 	public double chipBarrageDamageRatio = 1.0;
+
+	/** 爆裂射击：基础触发概率 */
+	public double chipBurstBaseChance = 0.10;
+	/** 爆裂射击：每一段的伤害倍率（0.55 = 55%） */
+	public double chipBurstSegmentRatio = 0.55;
+	/** 爆裂射击：射速加成每凑够 chipBurstFireRateStep 提升 chipBurstFireRatePerStep 概率 */
+	public double chipBurstFireRateStep = 0.05;
+	public double chipBurstFireRatePerStep = 0.01;
+	/** 爆裂射击：射速来源最多提供 +10% 概率 */
+	public double chipBurstFireRateCap = 0.10;
+	/** 爆裂射击：每次触发叠 1% 概率，上限 4%×永恒改装等级 */
+	public double chipBurstStackPerTrigger = 0.01;
+	public double chipBurstStackPerLevel = 0.04;
+	/** 爆裂射击：每段命中提供的充能 */
+	public int chipBurstChargePerHit = 1;
+	/** 爆裂射击：充能上限 */
+	public int chipBurstChargeMax = 300;
+	/** 爆裂射击：过载持续秒数 */
+	public double chipBurstOverloadSeconds = 5.0;
+	/** 爆裂射击：过载期间额外追加一段 55% 的概率 */
+	public double chipBurstOverloadExtraChance = 0.40;
+	/** 爆裂射击：过载结束后的失效秒数 */
+	public double chipBurstDisableSeconds = 4.0;
+	/** 极限火力：伤害加成区的负值 */
+	public double chipExtremeDamagePenalty = 0.12;
+	/** 极限火力：常驻射速提升 */
+	public double chipExtremeFireRate = 0.20;
+	/** 极限火力：定点连击每层射速，按永恒改装等级放大 */
+	public double chipExtremeFireRatePerStackPerLevel = 0.001;
+	/** 极限火力：定点连击射速提升上限 */
+	public double chipExtremeFireRateCap = 0.20;
+	/** 极限火力：定点射击期间爆炸伤害加成 */
+	public double chipExtremeExplosionDamageBonus = 0.30;
+	/** 极限火力：定点连击每层爆炸范围，按永恒改装等级放大 */
+	public double chipExtremeExplosionRadiusPerStackPerLevel = 0.002;
+	/** 极限火力：定点连击爆炸范围提升上限 */
+	public double chipExtremeExplosionRadiusCap = 0.40;
+	/** 刺骨冰锥：每级伤害加成（E 区相加） */
+	public double chipIceSpikeDamagePerLevel = 0.02;
+	/** 刺骨冰锥：每层持续伤害占该次命中最终伤害的比例 */
+	public double chipIceSpikeDotRatio = 0.25;
+	/** 刺骨冰锥：每层持续伤害结算时长（秒） */
+	public double chipIceSpikeDotSeconds = 10.0;
+	/** 刺骨冰锥：每层持续伤害的结算次数 */
+	public int chipIceSpikeDotPulses = 10;
+	/** 刺骨冰锥：刺骨寒意最大层数 */
+	public int chipIceSpikeMaxStacks = 3;
+	/** 刺骨冰锥：三层时下一次命中的最终伤害提升 */
+	public double chipIceSpikeFinalDamageBonus = 1.0;
+	/** 刺骨冰锥：冰雾减速比例 */
+	public double chipIceSpikeSlow = 0.10;
+	/** 刺骨冰锥：冰雾作用半径（格） */
+	public double chipIceSpikeFogRadius = 1.5;
+	/** 刺骨冰锥：单段冰雾存在时间（秒） */
+	public double chipIceSpikeFogSeconds = 2.0;
+	/** 刺骨冰锥：子弹沿途生成冰雾的间隔 tick */
+	public int chipIceSpikeFogIntervalTicks = 2;
+	/** 刺骨冰锥：离开冰雾后减速残留（秒） */
+	public double chipIceSpikeSlowSeconds = 1.0;
+	/** 战术目镜：分析点数上限 */
+	public int chipGogglesMaxPoints = 500;
+	/** 战术目镜：爆头伤害加成阈值 */
+	public int chipGogglesHeadThreshold = 100;
+	/** 战术目镜：移速加成阈值 */
+	public int chipGogglesSpeedThreshold = 200;
+	/** 战术目镜：主动技能解锁阈值 */
+	public int chipGogglesActiveThreshold = 300;
+	/** 战术目镜：爆头伤害加成 */
+	public double chipGogglesHeadDamage = 0.10;
+	/** 战术目镜：移速加成 */
+	public double chipGogglesSpeed = 0.10;
+	/** 战术目镜：数据倾泻每秒消耗（点数>=阈值时） */
+	public double chipGogglesDrainPerSecond = 75.0;
+	/** 战术目镜：数据倾泻每秒消耗（点数<阈值时） */
+	public double chipGogglesDrainLow = 100.0;
+	/** 战术目镜：消耗降档阈值 */
+	public int chipGogglesDrainThreshold = 400;
+	/** 战术目镜：满点时追踪子弹视为爆头的概率 */
+	public double chipGogglesHeadshotChance = 0.10;
+	/** 战术目镜：爆头概率生效的点数阈值 */
+	public int chipGogglesHeadshotThreshold = 500;
+	/** 战术目镜：每级不耗弹基础概率 */
+	public double chipGogglesAmmoSavePerLevel = 0.005;
+	/** 战术目镜：每1%额外射速加成提升的不耗弹概率 */
+	public double chipGogglesAmmoSavePerFireRate = 0.001;
+	/** 战术目镜：不耗弹概率上限 */
+	public double chipGogglesAmmoSaveCap = 0.20;
+	/** 战术目镜：自动追踪半径（格） */
+	public double chipGogglesTrackRange = 64.0;
+	/** 战术目镜：每tick追踪转向比例 */
+	public double chipGogglesTrackTurn = 0.60;
 	/**
 	 * 势如破竹：命中时对射手开一档加成。
 	 * 加成随「永恒改装等级」线性放大：暴击率 +2%×等级（LV5 = 10%）、
@@ -310,9 +401,9 @@ public class LevelConfig {
 	public double chipBlueCrit = 0.05;
 	/** 蓝芯片·伤害改造：伤害加成，定值不乘等级 */
 	public double chipBlueDamage = 0.05;
-	/** 蓝芯片·头部伤害改造：头部伤害加成，定值不乘等级 */
+	/** 蓝芯片·弱点改造：爆头伤害加成，定值不乘等级 */
 	public double chipBlueHeadDamage = 0.10;
-	/** 蓝芯片·暴击伤害改造：暴击伤害倍率的加值，定值不乘等级 */
+	/** 蓝芯片·爆伤改造：暴击伤害加成，定值不乘等级 */
 	public double chipBlueCritDamage = 0.10;
 	/** 蓝芯片·换弹改造：换弹时间缩短比例，定值不乘等级 */
 	public double chipBlueReload = 0.10;
@@ -440,8 +531,12 @@ public class LevelConfig {
 	public int chipMedalMaxStacks = 7;
 	/** 金芯片·荣誉勋章：连续这么多秒没有击杀就整条清零（自己受到伤害也立刻清零） */
 	public double chipMedalResetSeconds = 10.0;
-	/** 金芯片·弹药征用：击杀返还的后备弹药发数，按永恒改装等级放大 */
-	public int chipSalvageAmmoPerLevel = 4;
+	/** 金芯片·弹药征用：击杀后填充主弹匣的比例，按永恒改装等级放大 */
+	public double chipSalvageMagazineRatio = 0.04;
+	/** 金芯片·弹药征用：每次至少填充的发数 */
+	public int chipSalvageMinAmmo = 1;
+	/** 金芯片·弹药征用：主弹匣最多可填充到正常容量的倍数 */
+	public double chipSalvageCapacityCapRatio = 3.0;
 	/** 金芯片·战术换弹：换弹时间缩短比例，按永恒改装等级放大（LV5 = −30%） */
 	public double chipTacReloadPerLevel = 0.06;
 	/** 金芯片·战术换弹：换弹完成后的伤害加成（定值，不乘等级） */

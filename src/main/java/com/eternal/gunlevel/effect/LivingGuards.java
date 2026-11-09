@@ -5,6 +5,7 @@ import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
@@ -35,6 +36,11 @@ public final class LivingGuards {
 	 * 紫芯片·不破誓约的 15% 减免也挂在这里（同一个事件做减法，两颗同装时乘法叠加）。
 	 */
 	private static void onBravery(LivingHurtEvent event) {
+		// 极限火力：爆炸直击也算连续命中。这里要早于「只看玩家」的处理，因为受爆炸伤害的是目标，
+		// 伤害来源才是那颗子弹。
+		if (event.getAmount() > 0 && event.getSource().is(DamageTypeTags.IS_EXPLOSION)) {
+			ExtremeFireState.countExplosionHit(event.getSource().getDirectEntity());
+		}
 		if (!(event.getEntity() instanceof Player player)) {
 			return;
 		}

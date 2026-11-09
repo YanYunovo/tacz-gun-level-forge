@@ -4,6 +4,7 @@ import com.eternal.gunlevel.GunLevelMod;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
@@ -11,6 +12,7 @@ import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
@@ -38,6 +40,14 @@ public final class GunLevelNetwork {
 	public static Consumer<Boolean> onNimble;
 	/** S2C：硬化护甲那档护甲 +4 的两端同步 */
 	public static Consumer<Boolean> onHardened;
+	/** S2C：爆裂射击的充能/过载/失效状态（常驻 HUD） */
+	public static Consumer<BurstStateSync> onBurstState;
+	/** S2C：冻结目标的视觉截止刻，只用于客户端冰壳 */
+	public static Consumer<FreezeSync> onFreezeSync;
+	/** S2C：极限火力定点射击开关与连击层数 */
+	public static Consumer<ExtremeFireSync> onExtremeFire;
+	/** S2C：战术目镜分析点数、数据倾泻开关与移速加成 */
+	public static Consumer<GogglesSync> onGoggles;
 
 	/** S2C：经验条上方那行小字（哪颗芯片 + 哪种文案） */
 	public record ChipHint(int chipOrdinal, int kind) {
@@ -87,6 +97,22 @@ public final class GunLevelNetwork {
 
 	/** S2C：硬化护甲的护甲修正 */
 	public record HardenedSync(boolean on) {
+	}
+
+	/** S2C：爆裂射击的充能点数与两个截止刻（过载、失效），客户端据此画常驻提示 */
+	public record BurstStateSync(int charge, long overloadUntil, long disabledUntil) {
+	}
+
+	/** S2C：冻结目标 UUID 与绝对截止刻，客户端仅据此渲染冰壳 */
+	public record FreezeSync(UUID target, long until) {
+	}
+
+	/** S2C：极限火力定点状态。容量与移动限制由枪 NBT 同步，这里补客户端层数预测。 */
+	public record ExtremeFireSync(boolean active, int stacks) {
+	}
+
+	/** S2C：战术目镜分析点数、主动开关与移速加成。 */
+	public record GogglesSync(int points, boolean active, boolean speed) {
 	}
 
 	private GunLevelNetwork() {
@@ -196,6 +222,64 @@ public final class GunLevelNetwork {
 					});
 					ctx.get().setPacketHandled(true);
 				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(9, BurstStateSync.class,
+				(msg, buf) -> {
+					buf.writeVarInt(msg.charge());
+					buf.writeVarLong(msg.overloadUntil());
+					buf.writeVarLong(msg.disabledUntil());
+				},
+				buf -> new BurstStateSync(buf.readVarInt(), buf.readVarLong(), buf.readVarLong()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onBurstState != null) {
+							onBurstState.accept(msg);
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(10, FreezeSync.class,
+				(msg, buf) -> {
+					buf.writeUUID(msg.target());
+					buf.writeVarLong(msg.until());
+				},
+				buf -> new FreezeSync(buf.readUUID(), buf.readVarLong()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onFreezeSync != null) {
+							onFreezeSync.accept(msg);
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(11, ExtremeFireSync.class,
+				(msg, buf) -> {
+					buf.writeBoolean(msg.active());
+					buf.writeVarInt(msg.stacks());
+				},
+				buf -> new ExtremeFireSync(buf.readBoolean(), buf.readVarInt()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onExtremeFire != null) {
+							onExtremeFire.accept(msg);
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(12, GogglesSync.class,
+				(msg, buf) -> {
+					buf.writeVarInt(msg.points());
+					buf.writeBoolean(msg.active());
+					buf.writeBoolean(msg.speed());
+				},
+				buf -> new GogglesSync(buf.readVarInt(), buf.readBoolean(), buf.readBoolean()),
+				(msg, ctx) -> {
+					ctx.get().enqueueWork(() -> {
+						if (onGoggles != null) {
+							onGoggles.accept(msg);
+						}
+					});
+					ctx.get().setPacketHandled(true);
+				}, Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendHint(ServerPlayer player, int chipOrdinal, int kind) {
@@ -233,5 +317,26 @@ public final class GunLevelNetwork {
 
 	public static void sendHardened(ServerPlayer player, boolean on) {
 		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new HardenedSync(on));
+	}
+
+	public static void sendBurstState(ServerPlayer player, int charge, long overloadUntil,
+			long disabledUntil) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+				new BurstStateSync(charge, overloadUntil, disabledUntil));
+	}
+
+	public static void sendFreeze(LivingEntity target, long until) {
+		CHANNEL.send(PacketDistributor.TRACKING_ENTITY.with(() -> target),
+				new FreezeSync(target.getUUID(), until));
+	}
+
+	/** 极限火力：定点状态与连击层数只发给操作者，客户端据此预测射速并挂移速修正。 */
+	public static void sendExtremeFire(ServerPlayer player, boolean active, int stacks) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ExtremeFireSync(active, stacks));
+	}
+
+	/** 战术目镜：分析点数、主动开关与移速加成只发给操作者。 */
+	public static void sendGoggles(ServerPlayer player, int points, boolean active, boolean speed) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new GogglesSync(points, active, speed));
 	}
 }

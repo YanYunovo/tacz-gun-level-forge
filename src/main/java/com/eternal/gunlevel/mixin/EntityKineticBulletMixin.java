@@ -4,12 +4,16 @@ import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.LevelConfig;
 import com.eternal.gunlevel.effect.AuroraState;
 import com.eternal.gunlevel.effect.BloomDomain;
+import com.eternal.gunlevel.effect.BurstShotState;
 import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.ChipState;
 import com.eternal.gunlevel.effect.CombatState;
 import com.eternal.gunlevel.effect.Element;
+import com.eternal.gunlevel.effect.ExtremeFireState;
 import com.eternal.gunlevel.effect.FervorState;
+import com.eternal.gunlevel.effect.GogglesState;
 import com.eternal.gunlevel.effect.HuntState;
+import com.eternal.gunlevel.effect.IceSpikeState;
 import com.eternal.gunlevel.effect.LevelScaling;
 import com.eternal.gunlevel.effect.MomentumState;
 import com.eternal.gunlevel.effect.MedalState;
@@ -81,6 +85,8 @@ public abstract class EntityKineticBulletMixin {
 	private boolean explosion;
 	@Shadow(remap = false)
 	private int explosionDelayCount;
+	@Shadow(remap = false)
+	private float explosionRadius;
 	/**
 	 * 真实伤害结算入口（护甲两段拆分、击退都在里面）。
 	 * 强击连发的额外攻击直接把它再调一遍，所以额外攻击天然「吃同样的护甲与武器穿甲、
@@ -163,6 +169,9 @@ public abstract class EntityKineticBulletMixin {
 	/** 强击连发：是否装了 */
 	@Unique
 	private boolean gunlevel$barrage;
+	/** 当前这记伤害是否允许掷强击；爆裂段允许，强击自己的递归不允许 */
+	@Unique
+	private boolean gunlevel$barrageRollAllowed = true;
 	/**
 	 * 发射那把枪装的芯片全集：元素反应那一侧要用它判断凝晶召唤（要不要召唤、造物给几级抗性）。
 	 * 上面那些按芯片分的布尔是结算路径上的热路径 shortcut，两者都在构造时定格。
@@ -208,9 +217,59 @@ public abstract class EntityKineticBulletMixin {
 	 */
 	@Unique
 	private Entity gunlevel$killCountedFor;
+	/** 爆裂射击：这一发装了芯片 / 这一发是否触发 / 是否是过载那几发 / 额外段数 */
+	@Unique
+	private boolean gunlevel$burstShot;
+	@Unique
+	private boolean gunlevel$burstThisShot;
+	@Unique
+	private boolean gunlevel$burstOverload;
+	@Unique
+	private int gunlevel$burstExtraSegments;
+	/** 每一段 55% 的最终伤害（第一段在 scaledDamage 里定格，额外段直接复用） */
+	@Unique
+	private float gunlevel$burstSegmentDamage;
+	/** 额外段只结算一次：递归进来的 onHit 不能再拆一次 */
+	@Unique
+	private boolean gunlevel$burstSpawned;
+	/** 火焰轨迹环形起点的世界中心（出膛那一刻射手的眼位，仅作兜底） */
+	@Unique
+	private double gunlevel$burstStartX;
+	@Unique
+	private double gunlevel$burstStartY;
+	@Unique
+	private double gunlevel$burstStartZ;
+	/** 出膛那把枪：爆裂充能按每把枪独立记账，命中时要用同一个物品身份。 */
+	@Unique
+	private ItemStack gunlevel$gunStack = ItemStack.EMPTY;
+	/** 极限火力：这一发装了芯片，以及出膛时是否处于定点射击回合 */
+	@Unique
+	private boolean gunlevel$extremeFire;
+	@Unique
+	private boolean gunlevel$extremeRound;
+	/** 刺骨冰锥：芯片本身，以及冰核芯门槛后的整套效果。 */
+	@Unique
+	private boolean gunlevel$iceSpike;
+	@Unique
+	private boolean gunlevel$iceEffects;
+	@Unique
+	private boolean gunlevel$iceBonusShot;
+	@Unique
+	private int gunlevel$iceFogCooldown;
 	/** 破甲强攻的飘字去重：直击与爆炸两条路径都会走到，一条命只飘一次 */
 	@Unique
 	private boolean gunlevel$armorBreakHinted;
+	/** 战术目镜：芯片、数据倾泻追踪目标与不耗弹掷骰。 */
+	@Unique
+	private boolean gunlevel$goggles;
+	@Unique
+	private boolean gunlevel$gogglesTrack;
+	@Unique
+	private java.util.UUID gunlevel$gogglesTarget;
+	@Unique
+	private boolean gunlevel$gogglesNoConsume;
+	@Unique
+	private int gunlevel$gogglesHitCount;
 
 	@Inject(method = "<init>(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;"
 			+ "Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;"
@@ -223,6 +282,7 @@ public abstract class EntityKineticBulletMixin {
 			ResourceLocation gunDisplayId, boolean tracer, GunData gunData, BulletData data,
 			CallbackInfo ci) {
 		this.gunlevel$shooter = shooter;
+		this.gunlevel$gunStack = gunStack;
 		// 元素与芯片都只来自枪上装的配件，与等级无关
 		this.gunlevel$element = GunCoreData.get(gunStack);
 		EnumSet<Chip> chips = GunChipData.get(gunStack);
@@ -231,6 +291,16 @@ public abstract class EntityKineticBulletMixin {
 		// 高能弹匣：余量判定在这发子弹生成时定格。TACZ 的 LivingEntityShoot 先扣弹再异步建子弹实体，
 		// 所以这里读到的已经是减去这一发后的数量，配 >= 才等于玩家口径的「开火时弹匣里多于 20 发」。
 		this.gunlevel$highMag = chips.contains(Chip.HIGH_MAG) && gunlevel$hasAmmoMargin(gunStack);
+		if (this.gunlevel$highMag && !world.isClientSide && shooter != null) {
+			ServerLevel sl = (ServerLevel) world;
+			Vec3 feet = shooter.position();
+			for (int i = 0; i < 12; i++) {
+				double angle = i * (Math.PI * 2 / 12);
+				sl.sendParticles(ParticleTypes.CRIT,
+						feet.x + Math.cos(angle) * 0.6, feet.y + 0.1, feet.z + Math.sin(angle) * 0.6,
+						1, 0.0, 0.0, 0.0, 0.0);
+			}
+		}
 		this.gunlevel$lowMag = chips.contains(Chip.BUDGET_SHOT)
 				&& gunlevel$isLowMag(gunStack, gunData);
 		// 战术换弹：换弹完成窗口在出膛定格（子弹飞行途中窗口过掉也照吃这一发）
@@ -240,12 +310,18 @@ public abstract class EntityKineticBulletMixin {
 		// 极光匣的标记在那把枪的 NBT 上，此刻定格：这一匣打出去的命中不参与攒下一匣
 		this.gunlevel$auroraMag = GunAuroraData.isOn(gunStack);
 		this.gunlevel$barrage = chips.contains(Chip.BARRAGE);
+		this.gunlevel$barrageRollAllowed = true;
 		this.gunlevel$momentum = chips.contains(Chip.MOMENTUM);
 		this.gunlevel$thunder = chips.contains(Chip.THUNDER_VOICE);
 		this.gunlevel$fervor = chips.contains(Chip.FERVOR);
 		this.gunlevel$flameRoar = chips.contains(Chip.FLAME_ROAR);
 		this.gunlevel$hunt = chips.contains(Chip.HUNTING_MOMENT);
 		this.gunlevel$rhythm = chips.contains(Chip.RHYTHM_SHOT);
+		this.gunlevel$burstShot = chips.contains(Chip.BURST_SHOT);
+		this.gunlevel$extremeFire = chips.contains(Chip.EXTREME_FIRE);
+		this.gunlevel$iceSpike = chips.contains(Chip.ICE_SPIKE);
+		this.gunlevel$iceEffects = this.gunlevel$iceSpike && this.gunlevel$element == Element.ICE;
+		this.gunlevel$goggles = chips.contains(Chip.GOGGLES);
 		this.gunlevel$gunId = gunId;
 		// 咆哮匣里那颗特殊弹：按枪 NBT 上的截止时刻定格。这一发是不是它，出膛这一刻就定了，
 		// 之后就算 5 秒窗口过掉也不会再有一发吃到 400%（这一匣只有这一发）。
@@ -263,6 +339,24 @@ public abstract class EntityKineticBulletMixin {
 			return;
 		}
 		this.gunlevel$level = level;
+		if (!world.isClientSide && this.gunlevel$extremeFire
+				&& shooter instanceof ServerPlayer extremePlayer
+				&& ExtremeFireState.isActive(extremePlayer)) {
+			this.gunlevel$extremeRound = true;
+			ExtremeFireState.onBulletSpawn((Entity) (Object) this, extremePlayer, level);
+			this.explosionRadius *= (float) ExtremeFireState.explosionRadiusScale(extremePlayer);
+			ExtremeFireState.refillOneFromReserve(extremePlayer, gunStack);
+		}
+		if (!world.isClientSide && this.gunlevel$goggles && shooter instanceof ServerPlayer gogglesPlayer
+				&& GogglesState.isActive(gogglesPlayer)) {
+			LivingEntity gogglesTarget = GogglesState.acquireTarget(gogglesPlayer);
+			if (gogglesTarget != null) {
+				this.gunlevel$gogglesTrack = true;
+				this.gunlevel$gogglesTarget = gogglesTarget.getUUID();
+				double chance = GogglesState.ammoSaveChance(gogglesPlayer, gunStack, level, world.getGameTime());
+				this.gunlevel$gogglesNoConsume = world.getRandom().nextFloat() < chance;
+			}
+		}
 		if (LevelScaling.currentLevel() <= 0) {
 			// 射击窗口内 BulletData 已给出缩放后的初速，不再重复乘
 			this.speed *= (float) LevelScaling.speedScale(level);
@@ -328,6 +422,20 @@ public abstract class EntityKineticBulletMixin {
 				this.explosionDamage *= (float) GunLevelMod.CONFIG.chipRoarDamageMultiplier;
 			}
 		}
+		// 爆裂射击：出膛这一刻定格「这一发拆几段、是不是过载那一发」，命中期间不再重掷。
+		// 轨迹起点中心用射手眼位；实际生成粒子时会绕着命中方向展开成浮游炮式发射环。
+		if (this.gunlevel$burstShot && !world.isClientSide) {
+			Vec3 eye = shooter.getEyePosition();
+			this.gunlevel$burstStartX = eye.x;
+			this.gunlevel$burstStartY = eye.y;
+			this.gunlevel$burstStartZ = eye.z;
+			BurstShotState.Plan plan = BurstShotState.plan(shooter, gunStack, level,
+					world.getGameTime(), world.getRandom().nextFloat(),
+					world.getRandom().nextFloat());
+			this.gunlevel$burstThisShot = plan.burst();
+			this.gunlevel$burstExtraSegments = plan.extraSegments();
+			this.gunlevel$burstOverload = plan.overload();
+		}
 	}
 
 	/**
@@ -354,10 +462,18 @@ public abstract class EntityKineticBulletMixin {
 	@Inject(method = "onHitBlock", at = @At("HEAD"), remap = false)
 	private void gunlevel$onBlockHitMiss(BlockHitResult hit, Vec3 pos, Vec3 cameraPos,
 			CallbackInfo ci) {
-		if (this.gunlevel$rhythm && this.gunlevel$shooter != null
+		// TACZ 每 tick 都用 MISS 的射线结果调用一次 onHitBlock；只有真的撞到方块才算落空。
+		// 爆炸弹撞方块只是起爆点，不是落空，回合要留给随后的爆炸命中记账。
+		boolean realMiss = hit.getType() != net.minecraft.world.phys.HitResult.Type.MISS
+				&& !this.explosion;
+		if (realMiss && this.gunlevel$rhythm && this.gunlevel$shooter != null
 				&& !this.gunlevel$hitCounted.contains(Chip.RHYTHM_SHOT)
 				&& !this.gunlevel$shooter.level().isClientSide) {
 			RhythmState.reset(this.gunlevel$shooter);
+		}
+		if (realMiss && this.gunlevel$extremeRound
+				&& !this.gunlevel$shooter.level().isClientSide) {
+			ExtremeFireState.onBulletMiss((Entity) (Object) this);
 		}
 		// 爆炸入口之二：打在方块上没有直击段，爆炸就是这一发的全部伤害，芯片乘区全靠这里补
 		this.gunlevel$scaleExplosion();
@@ -373,6 +489,32 @@ public abstract class EntityKineticBulletMixin {
 		if (this.explosion && this.explosionDelayCount <= 0) {
 			this.gunlevel$scaleExplosion();
 		}
+		if (this.gunlevel$iceEffects && this.gunlevel$shooter != null
+				&& !((Entity) (Object) this).level().isClientSide) {
+			if (--this.gunlevel$iceFogCooldown <= 0) {
+				this.gunlevel$iceFogCooldown = Math.max(1,
+						GunLevelMod.CONFIG.chipIceSpikeFogIntervalTicks);
+				IceSpikeState.onBulletTrail(((Entity) (Object) this), this.gunlevel$shooter,
+						((Entity) (Object) this).level().getGameTime());
+			}
+		}
+		if (this.gunlevel$gogglesTrack && this.gunlevel$gogglesTarget != null
+				&& ((Entity) (Object) this).level() instanceof ServerLevel trackWorld) {
+			Entity trackEntity = trackWorld.getEntity(this.gunlevel$gogglesTarget);
+			if (trackEntity instanceof LivingEntity trackTarget && trackTarget.isAlive()
+					&& this.gunlevel$shooter instanceof ServerPlayer trackShooter
+					&& GogglesState.hasLineOfSight(trackShooter, trackTarget)) {
+				Entity self = (Entity) (Object) this;
+				Vec3 toTarget = trackTarget.position().add(0.0, trackTarget.getBbHeight() * 0.5, 0.0)
+						.subtract(self.position());
+				double dist = toTarget.length();
+				if (dist > 0.01 && dist <= GunLevelMod.CONFIG.chipGogglesTrackRange) {
+					self.setDeltaMovement(toTarget);
+				}
+			} else {
+				this.gunlevel$gogglesTrack = false;
+			}
+		}
 	}
 
 	/**
@@ -387,6 +529,15 @@ public abstract class EntityKineticBulletMixin {
 			// 触发强攻那发同时走穿甲和增伤：增伤乘在整段伤害上，两段都算到
 			scaled *= (float) GunLevelMod.CONFIG.chipArmorPierceMultiplier;
 		}
+		// 刺骨冰锥：目标三层且本次满层后尚未触发时，这一发最终伤害提升。
+		if (this.gunlevel$iceEffects && this.gunlevel$shooter != null
+				&& this.gunlevel$hitTarget instanceof LivingEntity iceTarget) {
+			if (this.gunlevel$iceBonusShot
+					|| IceSpikeState.triggerBonus(iceTarget, this.gunlevel$shooter.level().getGameTime())) {
+				this.gunlevel$iceBonusShot = true;
+				scaled *= 1.0F + (float) GunLevelMod.CONFIG.chipIceSpikeFinalDamageBonus;
+			}
+		}
 		// 紫芯片·抱团取暖：已经并进共用乘区（相加），这里只兜「没升级的枪」——
 		// 等级 0 根本不进 applyScale，光环不能跟着等级门槛一起消失。
 		// 强击连发的额外攻击伤害已含光环，不再乘第二次。
@@ -396,11 +547,19 @@ public abstract class EntityKineticBulletMixin {
 			if (team > 0) {
 				scaled *= 1.0F + (float) team;
 			}
+			if (this.gunlevel$chips.contains(Chip.EXTREME_FIRE)) {
+				scaled *= 1.0F - (float) GunLevelMod.CONFIG.chipExtremeDamagePenalty;
+			}
 		}
 		// 固定点数区：公式里排在最终伤害倍率之后 —— 净化领域只加在直击上，
 		// 不吃 ×2、也不吃暴击/爆头/加成。强击连发的额外攻击传进来的伤害已含这份点数，不再加第二遍。
 		if (!this.gunlevel$barraging && this.gunlevel$shooter != null) {
 			scaled += (float) BloomDomain.purifyAttackBonus(this.gunlevel$shooter, this.gunlevel$level);
+		}
+		// 爆裂射击：整发最终伤害拆成等份的 segmentRatio；第一段自己用这份值，额外段直接复用。
+		if (this.gunlevel$burstThisShot && !this.gunlevel$barraging) {
+			scaled *= (float) GunLevelMod.CONFIG.chipBurstSegmentRatio;
+			this.gunlevel$burstSegmentDamage = scaled;
 		}
 		return scaled;
 	}
@@ -674,6 +833,13 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$tacReload) {
 			bonus += (float) c.chipTacReloadDamage;
 		}
+		// 金芯片·极限火力：常驻代价直接落在伤害加成区，直击与爆炸共用这一档。
+		bonus -= this.gunlevel$chips.contains(Chip.EXTREME_FIRE)
+				? (float) c.chipExtremeDamagePenalty : 0.0F;
+		// 金芯片·刺骨冰锥：整套效果需要冰核芯；伤害加成按等级进 E 区相加。
+		if (this.gunlevel$iceSpike) {
+			bonus += (float) (c.chipIceSpikeDamagePerLevel * this.gunlevel$level);
+		}
 		// 紫芯片·抱团取暖：光环跟人不跟枪（射手自己不用装），并进同一个相加乘区，
 		// 直击和爆炸一起享用；没升级的枪不进这个方法，由 scaledDamage 里的兜底段照顾
 		if (this.gunlevel$shooter != null) {
@@ -702,12 +868,15 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$chips.contains(Chip.HEAD_DAMAGE_MOD)) {
 			bonus += (float) c.chipBlueHeadDamage;
 		}
+		if (this.gunlevel$goggles && this.gunlevel$shooter != null) {
+			bonus += (float) GogglesState.headBonus(this.gunlevel$shooter);
+		}
 		return 1.0F + bonus;
 	}
 
 	/**
 	 * 烈焰咆哮的「视为命中头部」是全局口径：这一发最终算不算打头（真爆头或概率转化）只有一个答案，
-	 * 头部伤害改造、势如破竹的非头部判定、烈焰咆哮自己的增伤与刷新计数全都看它，
+	 * 弱点改造、势如破竹的非爆头判定、烈焰咆哮自己的增伤与刷新计数全都看它，
 	 * 不允许某颗芯片悄悄用另一套爆头判定。真爆头与伪爆头都必须吃到头部增伤。
 	 *
 	 * <p>每发只解析一次：一颗子弹穿透多个目标时，不能对每个目标重掷「10% 视为爆头」——
@@ -724,6 +893,12 @@ public abstract class EntityKineticBulletMixin {
 		} else {
 			this.gunlevel$headHit = this.gunlevel$headshot;
 		}
+		if (!this.gunlevel$headHit && this.gunlevel$gogglesTrack
+				&& this.gunlevel$shooter instanceof ServerPlayer gogglesShooter
+				&& GogglesState.points(gogglesShooter) >= GunLevelMod.CONFIG.chipGogglesHeadshotThreshold) {
+			this.gunlevel$headHit = ((Entity) (Object) this).level().getRandom().nextFloat()
+					< GunLevelMod.CONFIG.chipGogglesHeadshotChance;
+		}
 	}
 
 	/**
@@ -735,6 +910,14 @@ public abstract class EntityKineticBulletMixin {
 				&& this.gunlevel$shooter != null) {
 			this.gunlevel$armorBreakHinted = true;
 			ChipHints.show(this.gunlevel$shooter, Chip.ARMOR_BREAK);
+			if (this.gunlevel$hitTarget instanceof LivingEntity victim
+					&& victim.level() instanceof ServerLevel world) {
+				Vec3 pos = victim.position().add(0.0, victim.getBbHeight() * 0.5, 0.0);
+				world.sendParticles(ParticleTypes.CRIT, pos.x, pos.y, pos.z,
+						14, 0.35, 0.4, 0.35, 0.15);
+				world.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z,
+						6, 0.3, 0.35, 0.3, 0.02);
+			}
 		}
 	}
 
@@ -774,6 +957,9 @@ public abstract class EntityKineticBulletMixin {
 		if (this.gunlevel$chips.contains(Chip.EXPLOSION_MOD)) {
 			scale *= 1.0F + (float) GunLevelMod.CONFIG.chipBlueExplosion;
 		}
+		if (this.gunlevel$extremeRound) {
+			scale *= 1.0F + (float) GunLevelMod.CONFIG.chipExtremeExplosionDamageBonus;
+		}
 		// 破甲强攻 ×2 的口径是「本次最终伤害」，爆炸段同样进账；飘字与直击共用去重闸
 		if (this.gunlevel$pierceProc) {
 			scale *= (float) GunLevelMod.CONFIG.chipArmorPierceMultiplier;
@@ -799,6 +985,40 @@ public abstract class EntityKineticBulletMixin {
 		}
 		// 强击连发的额外攻击是在这个方法内部递归进来的，飘字与粒子只在最外层那一次发，免得一行刷两遍
 		boolean outer = !this.gunlevel$barraging;
+		// 爆裂射击：每一段命中 +1 充能；穿透的后续目标不重复计，额外段递归前会清 hitCounted
+		if (this.gunlevel$burstShot && this.gunlevel$shooter != null
+				&& target instanceof LivingEntity
+				&& target.level() instanceof ServerLevel burstWorld
+				&& gunlevel$firstHitFor(Chip.BURST_SHOT)) {
+			BurstShotState.onHitSegment(this.gunlevel$shooter, this.gunlevel$gunStack,
+					burstWorld.getGameTime());
+		}
+		// 刺骨冰锥：每一段有效命中都给目标叠一层刺骨寒意；满三层后由状态类拒绝。
+		if (this.gunlevel$iceEffects && this.gunlevel$shooter != null
+				&& target instanceof LivingEntity iceTarget
+				&& target.level() instanceof ServerLevel iceWorld) {
+			IceSpikeState.onHit(iceTarget, this.gunlevel$shooter, damage, iceWorld.getGameTime());
+		}
+		// 战术目镜：命中攒分析点数（爆头双倍），穿透最多计 2 个目标；数据倾泻期间命中追踪目标有概率不耗弹。
+		if (this.gunlevel$goggles && this.gunlevel$shooter != null
+				&& target instanceof LivingEntity gogglesVictim
+				&& target.level() instanceof ServerLevel) {
+			if (this.gunlevel$gogglesHitCount < 2) {
+				this.gunlevel$gogglesHitCount++;
+				GogglesState.onHit(this.gunlevel$shooter, gogglesVictim, this.gunlevel$headHit);
+			}
+			if (this.gunlevel$gogglesNoConsume && this.gunlevel$gogglesTarget != null
+					&& this.gunlevel$gogglesTarget.equals(target.getUUID())) {
+				TaczCompat.setAmmoCount(this.gunlevel$gunStack,
+						TaczCompat.currentAmmoCount(this.gunlevel$gunStack) + 1);
+			}
+		}
+		// 极限火力：定点回合的直击也算连续命中。firstHitFor 让每段各叠一层，
+		// 同一颗子弹再穿透其他目标则仍按一颗子弹的该段只叠一次。
+		if (this.gunlevel$extremeRound && this.gunlevel$shooter instanceof ServerPlayer extremeShooter
+				&& target instanceof LivingEntity && gunlevel$firstHitFor(Chip.EXTREME_FIRE)) {
+			ExtremeFireState.countDirectHit((Entity) (Object) this, extremeShooter);
+		}
 		// 凛冬之啸：命中叠凝寒（独立 buff，与原版缓慢可叠加）；内层递归也算一次命中
 		if (this.gunlevel$chips.contains(Chip.RIME)
 				&& target instanceof LivingEntity chilling
@@ -831,6 +1051,14 @@ public abstract class EntityKineticBulletMixin {
 			ItemStack auroraGun = TaczCompat.findGunStack(this.gunlevel$shooter, this.gunlevel$gunId);
 			if (AuroraState.onHit(this.gunlevel$shooter, auroraGun, this.gunlevel$auroraMag)) {
 				ChipHints.show(this.gunlevel$shooter, Chip.AURORA, ChipHints.AURORA_READY);
+				if (this.gunlevel$shooter.level() instanceof ServerLevel serverLevel) {
+					Vec3 pos = this.gunlevel$shooter.position()
+							.add(0.0, this.gunlevel$shooter.getBbHeight() * 0.5, 0.0);
+					serverLevel.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y, pos.z,
+							20, 0.5, 0.6, 0.5, 0.05);
+					serverLevel.sendParticles(ParticleTypes.ENCHANT, pos.x, pos.y, pos.z,
+							10, 0.4, 0.5, 0.4, 0.1);
+				}
 			}
 		}
 		// 迅雷之音：命中抵冷却，空开枪不白送
@@ -864,6 +1092,14 @@ public abstract class EntityKineticBulletMixin {
 			if (outer || killed) {
 				if (MomentumState.onHit(this.gunlevel$shooter, target.level().getGameTime(), killed)) {
 					ChipHints.show(this.gunlevel$shooter, Chip.MOMENTUM);
+					if (target.level() instanceof ServerLevel serverLevel) {
+						Vec3 pos = this.gunlevel$shooter.position()
+								.add(0.0, this.gunlevel$shooter.getBbHeight() * 0.5, 0.0);
+						serverLevel.sendParticles(ParticleTypes.ENCHANTED_HIT, pos.x, pos.y, pos.z,
+								18, 0.6, 0.5, 0.6, 0.12);
+						serverLevel.sendParticles(ParticleTypes.CRIT, pos.x, pos.y, pos.z,
+								8, 0.4, 0.4, 0.4, 0.08);
+					}
 				}
 			}
 		}
@@ -908,6 +1144,20 @@ public abstract class EntityKineticBulletMixin {
 			if (target instanceof LivingEntity victim && !victim.isAlive()) {
 				SpreeState.onKill(this.gunlevel$shooter, now);
 				MedalState.onKill(this.gunlevel$shooter, now);
+				if (this.gunlevel$shooter != null && target.level() instanceof ServerLevel serverLevel) {
+					Vec3 pos = this.gunlevel$shooter.position()
+							.add(0.0, this.gunlevel$shooter.getBbHeight() * 0.5, 0.0);
+					if (this.gunlevel$chips.contains(Chip.MEDAL)) {
+						serverLevel.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, pos.x, pos.y, pos.z,
+								1, 0.3, 0.4, 0.3, 0.1);
+						serverLevel.sendParticles(ParticleTypes.ENCHANTED_HIT, pos.x, pos.y, pos.z,
+								12, 0.45, 0.45, 0.45, 0.08);
+					}
+					if (this.gunlevel$chips.contains(Chip.SALVAGE)) {
+						serverLevel.sendParticles(ParticleTypes.END_ROD, pos.x, pos.y, pos.z,
+								10, 0.35, 0.4, 0.35, 0.04);
+					}
+				}
 				if (this.gunlevel$chips.contains(Chip.SALVAGE)
 						&& this.gunlevel$shooter instanceof ServerPlayer salvager) {
 					SalvageState.onKill(salvager, TaczCompat.findGunStack(
@@ -928,26 +1178,61 @@ public abstract class EntityKineticBulletMixin {
 			gunlevel$hintArmorBreak();
 		}
 
+		if (target.level() instanceof ServerLevel fxLevel) {
+			Vec3 pos = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+			// 爆裂收割：目标处于低血量执行区间时爆出红白碎屑
+			if (outer && this.gunlevel$chips.contains(Chip.REAP)
+					&& target instanceof LivingEntity reapVictim
+					&& reapVictim.getHealth() / reapVictim.getMaxHealth()
+							< GunLevelMod.CONFIG.chipReapHealthRatio) {
+				fxLevel.sendParticles(ParticleTypes.CRIT, pos.x, pos.y, pos.z,
+						12, 0.35, 0.4, 0.35, 0.1);
+			}
+		}
+
 		if (this.gunlevel$crit && outer && target.level() instanceof ServerLevel serverWorld) {
 			Vec3 pos = target.position().add(0, target.getBbHeight() * 0.5, 0);
 			serverWorld.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, pos.x(), pos.y(), pos.z(),
 					8, 0.15, 0.2, 0.15, 0.0);
 		}
 
-		// 强击连发：这一次命中有几率再结算一遍（不消耗子弹）。掷骰在命中这一刻，所以空开枪不吃概率；
-		// 额外攻击递归走同一条结算，因此它同样触发元素反应与芯片命中效果，
-		// 但它自己那一次不再掷骰（barraging 挡着），也就不会滚成几何级数。
+		// 爆裂射击：这一发拆成多段，每一段都按一次独立命中结算
+		// （叠层、命中次数、元素反应全算 —— 2026-10-25 用户口径「改变伤害段数的都要计算」）
+		if (outer && this.gunlevel$burstThisShot && !this.gunlevel$burstSpawned) {
+			this.gunlevel$burstSpawned = true;
+			boolean savedBarraging = this.gunlevel$barraging;
+			boolean savedBarrageRoll = this.gunlevel$barrageRollAllowed;
+			for (int i = 0; i < this.gunlevel$burstExtraSegments && !target.isRemoved(); i++) {
+				Vec3 end = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+				this.gunlevel$barraging = true;
+				this.gunlevel$barrageRollAllowed = true;
+				this.gunlevel$hitCounted.clear();
+				try {
+					this.tacAttackEntity(multipart, this.gunlevel$burstSegmentDamage, sources);
+				} finally {
+					this.gunlevel$barraging = savedBarraging;
+					this.gunlevel$barrageRollAllowed = savedBarrageRoll;
+				}
+				gunlevel$burstTrail(target.level(), end, i, this.gunlevel$burstExtraSegments);
+			}
+		}
+
+		// 强击连发：这一记伤害有几率再结算一遍（不消耗子弹）。爆裂射击的拆分弹段也是独立命中，
+		// 所以允许参与掷骰；强击自己递归产生的追加攻击再把掷骰开关关掉，避免滚成几何级数。
 		// 伤害要把这一发乘上去的暴击倍率除回去：描述里的「本次命中的 %1$s」是未暴击口径，额外攻击自己不吃暴击。
 		// 递归前把「同一发只记一次」的命中标志全部放开（2026-10-23 用户口径「强击连发要能触发
 		// 全部的命中次数的芯片，包括迅雷之音」）：极光追击、愈战愈勇、节奏射击、迅雷之音的命中抵冷却、
 		// 烈焰咆哮的爆头计数 —— 那些标志管的是「一颗子弹穿透多个目标只算一发」，
 		// 而额外攻击是一次新的攻击，全都该再记一次。递归内部会重新置回 true，
 		// 所以同一发后续的穿透目标仍然不会重复攒。
-		if (outer && this.gunlevel$barrage
+		if (this.gunlevel$barrageRollAllowed && this.gunlevel$barrage
 				&& target.level().getRandom().nextFloat()
 				< (float) (GunLevelMod.CONFIG.chipBarrageChancePerLevel * this.gunlevel$level)
 				&& !target.isRemoved()) {
+			boolean savedBarraging = this.gunlevel$barraging;
+			boolean savedBarrageRoll = this.gunlevel$barrageRollAllowed;
 			this.gunlevel$barraging = true;
+			this.gunlevel$barrageRollAllowed = false;
 			// 额外攻击是一次新的攻击：所有「命中计数」类芯片都该再记一次。
 			// 清集合就够了 —— 新增命中计数芯片时只要用 gunlevel$firstHitFor(Chip.X) 判一次，
 			// 这里天然生效，不会再出现「漏复位一个标志」。
@@ -956,9 +1241,71 @@ public abstract class EntityKineticBulletMixin {
 				this.tacAttackEntity(multipart, damage / this.gunlevel$critApplied
 						* (float) GunLevelMod.CONFIG.chipBarrageDamageRatio, sources);
 			} finally {
-				this.gunlevel$barraging = false;
+				this.gunlevel$barraging = savedBarraging;
+				this.gunlevel$barrageRollAllowed = savedBarrageRoll;
 			}
 			ChipHints.show(this.gunlevel$shooter, Chip.BARRAGE);
+			if (target.level() instanceof ServerLevel serverLevel) {
+				Vec3 pos = target.position().add(0.0, target.getBbHeight() * 0.5, 0.0);
+				serverLevel.sendParticles(ParticleTypes.SWEEP_ATTACK, pos.x, pos.y, pos.z,
+						1, 0.0, 0.0, 0.0, 0.0);
+				serverLevel.sendParticles(ParticleTypes.ENCHANTED_HIT, pos.x, pos.y, pos.z,
+						8, 0.35, 0.35, 0.35, 0.12);
+			}
+		}
+	}
+
+	/**
+	 * 爆裂射击的额外弹道：起点分布在射手周围、围绕本体命中方向的圆环上，
+	 * 像浮游炮从不同位置汇聚到同一个落点。过载的两段固定在圆环相对两侧，
+	 * 单段则按实体编号取相位，避免每条轨迹都从屏幕中心出发。终点仍与枪械弹道一致。
+	 */
+	@Unique
+	private void gunlevel$burstTrail(Level world, Vec3 end, int index, int total) {
+		if (!(world instanceof ServerLevel server)) {
+			return;
+		}
+		Vec3 origin = this.gunlevel$shooter != null
+				? this.gunlevel$shooter.getEyePosition()
+				: new Vec3(this.gunlevel$burstStartX, this.gunlevel$burstStartY,
+						this.gunlevel$burstStartZ);
+		Vec3 aim = end.subtract(origin);
+		if (aim.lengthSqr() < 1.0E-4) {
+			return;
+		}
+		Vec3 axis = aim.normalize();
+		Vec3 reference = Math.abs(axis.y) < 0.9
+				? new Vec3(0.0, 1.0, 0.0)
+				: new Vec3(1.0, 0.0, 0.0);
+		Vec3 side = axis.cross(reference).normalize();
+		Vec3 vertical = axis.cross(side).normalize();
+		if (side.lengthSqr() < 1.0E-4 || vertical.lengthSqr() < 1.0E-4) {
+			side = new Vec3(1.0, 0.0, 0.0);
+			vertical = new Vec3(0.0, 1.0, 0.0);
+		}
+
+		long seed = ((long) Math.floor(this.gunlevel$burstStartX * 64.0D) * 73856093L)
+				^ ((long) Math.floor(this.gunlevel$burstStartY * 64.0D) * 19349663L)
+				^ ((long) Math.floor(this.gunlevel$burstStartZ * 64.0D) * 83492791L)
+				^ ((long) Math.floor(end.x() * 64.0D) * 15485863L)
+				^ ((long) Math.floor(end.y() * 64.0D) * 32461L)
+				^ ((long) Math.floor(end.z() * 64.0D) * 5077L);
+		double phase = (Math.floorMod(seed, 1000L) / 1000.0D + index * 0.5D) % 1.0D;
+		if (phase < 0.0D) {
+			phase += 1.0D;
+		}
+		double angle = phase * Math.PI * 2.0D;
+		Vec3 radial = side.scale(Math.cos(angle))
+				.add(vertical.scale(Math.sin(angle)))
+				.scale(0.9D);
+		Vec3 start = origin.add(radial);
+
+		Vec3 direction = end.subtract(start);
+		int steps = Math.max(8, (int) (direction.length() * 3.0));
+		for (int i = 0; i <= steps; i++) {
+			Vec3 point = start.add(direction.scale((double) i / steps));
+			server.sendParticles(ParticleTypes.FLAME, point.x, point.y, point.z,
+					1, 0.02, 0.02, 0.02, 0.0);
 		}
 	}
 }

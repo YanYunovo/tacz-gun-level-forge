@@ -13,8 +13,10 @@ import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IAmmoBox;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -131,15 +133,29 @@ public final class FlameRoarState {
 		GunRoarData.use(gun, player.level().getGameTime(), Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipRoarEmpowerSeconds * 20)));
 		ChipHints.show(player, Chip.FLAME_ROAR);
+		if (player.level() instanceof ServerLevel world) {
+			world.sendParticles(ParticleTypes.FLAME, player.getX(),
+					player.getY() + player.getBbHeight() * 0.45, player.getZ(),
+					28, 0.65, 0.3, 0.65, 0.04);
+			world.sendParticles(ParticleTypes.LAVA, player.getX(),
+					player.getY() + player.getBbHeight() * 0.3, player.getZ(),
+					6, 0.45, 0.15, 0.45, 0.02);
+			world.sendParticles(ParticleTypes.SMOKE, player.getX(),
+					player.getY() + player.getBbHeight() * 0.25, player.getZ(),
+					10, 0.5, 0.2, 0.5, 0.02);
+		}
 	}
 
 	/** 背包里这种弹还有多少发：普通弹药按堆叠数，弹匣盒按盒内存量 */
-	private static int reserve(Player player, ItemStack gun) {
-		int total = 0;
+	public static int reserve(Player player, ItemStack gun) {
+		long total = 0;
 		for (ItemStack stack : player.getInventory().items) {
 			total += countIn(stack, gun);
+			if (total >= Integer.MAX_VALUE) {
+				return Integer.MAX_VALUE;
+			}
 		}
-		return total;
+		return (int) Math.max(0L, total);
 	}
 
 	private static int countIn(ItemStack stack, ItemStack gun) {
@@ -173,7 +189,7 @@ public final class FlameRoarState {
 		}
 	}
 
-	private static void takeFromReserve(Player player, ItemStack gun, int amount) {
+	public static void takeFromReserve(Player player, ItemStack gun, int amount) {
 		int left = amount;
 		List<ItemStack> items = player.getInventory().items;
 		for (int i = 0; i < items.size() && left > 0; i++) {
@@ -197,6 +213,17 @@ public final class FlameRoarState {
 				box.setAmmoCount(stack, have - take);
 				left -= take;
 			}
+		}
+	}
+
+	/** 定点射击启用时把超出 1 发的旧弹匣退回后备，避免吞掉玩家原有弹药。 */
+	public static void refundToReserve(Player player, ItemStack gun, int rounds) {
+		if (rounds <= 0) {
+			return;
+		}
+		ResourceLocation ammoId = ammoId(gun);
+		if (ammoId != null && player instanceof ServerPlayer serverPlayer) {
+			returnToReserve(serverPlayer, ammoId, rounds);
 		}
 	}
 

@@ -11,7 +11,9 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.nio.charset.StandardCharsets;
@@ -81,6 +83,13 @@ public final class WindGuardState {
 	 * 它这时候还在冷却，这一次按键就什么都不做，不会替补去放第二格那颗的技能。
 	 */
 	public static void requestSkill(ServerPlayer player) {
+		// 定点射击是切换型技能：第二次 V 必须先走解除，不能被别的主动技能冷却挡住。
+		if (ExtremeFireState.releaseIfActive(player)) {
+			return;
+		}
+		if (GogglesState.releaseIfActive(player)) {
+			return;
+		}
 		ItemStack gun = player.getMainHandItem();
 		long now = player.level().getGameTime();
 		for (Chip chip : GunChipData.ordered(gun)) {
@@ -100,6 +109,8 @@ public final class WindGuardState {
 				case FLAME_ROAR -> FlameRoarState.roar(player);
 				case RIME, TIDE, VINE, ROCK_WARD -> ElementSkillState.requestSkill(player, chip);
 				case TAC_RELOAD -> TacticalReloadState.quickReload(player);
+				case EXTREME_FIRE -> ExtremeFireState.toggle(player);
+				case GOGGLES -> GogglesState.toggle(player);
 				default -> {
 				}
 			}
@@ -127,6 +138,14 @@ public final class WindGuardState {
 		applySpeed(player, true);
 		// 放技能这一侧不飘小字：用户给这颗芯片的提示只有冷却完毕那一句「风的护佑已就绪」
 		syncSpeed(player, true);
+		if (player.level() instanceof ServerLevel world) {
+			world.sendParticles(ParticleTypes.CLOUD, player.getX(),
+					player.getY() + player.getBbHeight() * 0.45, player.getZ(),
+					24, 0.7, 0.2, 0.7, 0.04);
+			world.sendParticles(ParticleTypes.SWEEP_ATTACK, player.getX(),
+					player.getY() + player.getBbHeight() * 0.45, player.getZ(),
+					2, 0.5, 0.1, 0.5, 0.0);
+		}
 	}
 
 	/** 扩散结算时问一句：这一发是不是护佑期间的第一次扩散（是就当场用掉） */

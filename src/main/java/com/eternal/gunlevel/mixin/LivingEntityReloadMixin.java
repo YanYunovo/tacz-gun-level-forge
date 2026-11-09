@@ -4,7 +4,6 @@ import com.eternal.gunlevel.GunLevelData;
 import com.eternal.gunlevel.effect.AuroraState;
 import com.eternal.gunlevel.effect.Chip;
 import com.eternal.gunlevel.effect.LevelScaling;
-import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.util.TaczCompat;
 import net.minecraft.world.entity.LivingEntity;
@@ -56,14 +55,9 @@ public abstract class LivingEntityReloadMixin {
 			return;
 		}
 		ItemStack main = shooter.getMainHandItem();
-		// 换弹就意味着上一匣结束：先抹掉标记，再决定这一匣是不是新的极光匣
-		GunAuroraData.set(main, false);
-		int level = LevelScaling.levelOfStack(main);
-		// 就绪与消耗都按**这把枪**问（命中账记在枪 NBT 上，换枪不会接到别的枪的进度）
-		if (level > 0 && AuroraState.carries(main) && AuroraState.isReady(main)) {
-			AuroraState.consume(main);
-			GunAuroraData.set(main, true);
-		}
+		// 换弹就意味着上一匣结束；攒满就绪的这次换弹会消耗就绪并开新的极光匣。
+		// 普通换弹与战术快速装填共用 AuroraState.beginReload，避免两条路分叉。
+		AuroraState.beginReload(main);
 		AuroraState.syncCarrier(shooter);
 	}
 }

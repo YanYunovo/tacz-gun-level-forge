@@ -2,6 +2,7 @@ package com.eternal.gunlevel.client;
 
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.effect.Chip;
+import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.util.ChipHints;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -25,6 +26,11 @@ public final class ChipHud implements IGuiOverlay {
 	private final long[] triggeredAt = new long[CHIPS.length];
 	/** 每颗芯片当前这一行用哪种文案（ChipHints 的 kind） */
 	private final int[] kinds = new int[CHIPS.length];
+	private int burstCharge;
+	private long burstOverloadUntil;
+	private long burstDisabledUntil;
+	private int gogglesPoints;
+	private boolean gogglesActive;
 
 	@Override
 	public void render(ForgeGui gui, GuiGraphics context, float partialTick, int width, int height) {
@@ -39,6 +45,35 @@ public final class ChipHud implements IGuiOverlay {
 		// 行号跟着「当前在显示的第几条」走，不绑芯片序号，
 		// 否则以后芯片种类多于槽位数时，装着的会是靠后的几颗、中间空出一行
 		int row = 0;
+		if (client.level != null && GunChipData.get(client.player.getMainHandItem())
+				.contains(Chip.BURST_SHOT)) {
+			long gameTime = client.level.getGameTime();
+			Component line;
+			if (gameTime < this.burstOverloadUntil) {
+				line = Component.translatable("msg.tacz_gun_level.burst.overload",
+						seconds(this.burstOverloadUntil - gameTime));
+			} else if (gameTime < this.burstDisabledUntil) {
+				line = Component.translatable("msg.tacz_gun_level.burst.disabled",
+						seconds(this.burstDisabledUntil - gameTime));
+			} else {
+				line = Component.translatable("msg.tacz_gun_level.burst.charge",
+						this.burstCharge, GunLevelMod.CONFIG.chipBurstChargeMax);
+			}
+			context.drawCenteredString(client.font, line,
+					centerX, baseY - row * LINE_HEIGHT, COLOR);
+			row++;
+		}
+		if (client.level != null && GunChipData.get(client.player.getMainHandItem())
+				.contains(Chip.GOGGLES)) {
+			Component line = this.gogglesActive
+					? Component.translatable("msg.tacz_gun_level.goggles.active",
+							this.gogglesPoints, GunLevelMod.CONFIG.chipGogglesMaxPoints)
+					: Component.translatable("msg.tacz_gun_level.goggles.points",
+							this.gogglesPoints, GunLevelMod.CONFIG.chipGogglesMaxPoints);
+			context.drawCenteredString(client.font, line,
+					centerX, baseY - row * LINE_HEIGHT, 0x7DF9FF);
+			row++;
+		}
 		for (int i = 0; i < CHIPS.length; i++) {
 			if (now - triggeredAt[i] >= SHOW_MILLIS) {
 				continue;
@@ -53,6 +88,21 @@ public final class ChipHud implements IGuiOverlay {
 			context.drawCenteredString(client.font, line, centerX, baseY - row * LINE_HEIGHT, COLOR);
 			row++;
 		}
+	}
+
+	private static String seconds(long ticks) {
+		return String.format(java.util.Locale.ROOT, "%.1f", Math.max(0L, ticks) / 20.0);
+	}
+
+	public void updateBurst(int charge, long overloadUntil, long disabledUntil) {
+		this.burstCharge = charge;
+		this.burstOverloadUntil = overloadUntil;
+		this.burstDisabledUntil = disabledUntil;
+	}
+
+	public void updateGoggles(int points, boolean active) {
+		this.gogglesPoints = points;
+		this.gogglesActive = active;
 	}
 
 	public void show(int chipOrdinal, int kind) {

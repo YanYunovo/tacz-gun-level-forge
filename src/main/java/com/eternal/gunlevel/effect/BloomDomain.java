@@ -130,7 +130,9 @@ public final class BloomDomain {
 				domain.pos = owner.position();
 			}
 			grant(domain, t);
-			drawRing(domain);
+			if (t % 3 == 0) {
+				drawRing(domain);
+			}
 			if (domain.purify && owner instanceof LivingEntity livingOwner) {
 				trackRecord(domain, livingOwner);
 			}
@@ -272,10 +274,10 @@ public final class BloomDomain {
 		double r = GunLevelMod.CONFIG.bloomRadius + domain.radiusBonus;
 		Vec3 center = domain.pos.add(0.0, 0.1, 0.0);
 		for (int i = 0; i < RING_PARTICLES; i++) {
-			double angle = i * (Math.PI * 2 / RING_PARTICLES) + domain.world.random.nextDouble() * 0.2;
-			domain.world.sendParticles(ParticleTypes.HAPPY_VILLAGER,
+			double angle = i * (Math.PI * 2 / RING_PARTICLES);
+			domain.world.sendParticles(ParticleTypes.COMPOSTER,
 					center.x() + Math.cos(angle) * r, center.y(), center.z() + Math.sin(angle) * r,
-					1, 0.0, 0.05, 0.0, 0.0);
+					1, 0.0, 0.0, 0.0, 0.0);
 		}
 	}
 

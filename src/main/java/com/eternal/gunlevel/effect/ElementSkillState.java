@@ -4,6 +4,8 @@ import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.item.GunCoreData;
 import com.eternal.gunlevel.util.ChipHints;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
@@ -103,6 +105,8 @@ public final class ElementSkillState {
 						GunLevelMod.CHILL, duration, amp));
 			}
 		}
+		burst(player, ParticleTypes.SNOWFLAKE, 36, 2.2, 0.05);
+		burst(player, ParticleTypes.CLOUD, 16, 2.0, 0.02);
 	}
 
 	/** 涌泉：清掉自身全部负面效果并回血 */
@@ -122,6 +126,8 @@ public final class ElementSkillState {
 				.toList()
 				.forEach(player::removeEffect);
 		player.heal((float) (GunLevelMod.CONFIG.chipTideActiveHealBloodPerLevel * level));
+		burst(player, ParticleTypes.SPLASH, 30, 1.8, 0.08);
+		burst(player, ParticleTypes.BUBBLE, 16, 1.6, 0.02);
 	}
 
 	/** 藤缚：最近命中的目标定身（缓慢 VI，几乎无法移动） */
@@ -141,6 +147,8 @@ public final class ElementSkillState {
 		int level = LevelScaling.levelOfStack(player.getMainHandItem());
 		int duration = ticks(GunLevelMod.CONFIG.chipVineRootSecondsPerLevel * level);
 		target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, duration, 6));
+		burst(target, ParticleTypes.SPORE_BLOSSOM_AIR, 20, 1.2, 0.02);
+		burst(target, ParticleTypes.HAPPY_VILLAGER, 12, 1.0, 0.02);
 	}
 
 	/** 岩铠：立刻获得一把金心（按永恒改装等级放大） */
@@ -159,6 +167,18 @@ public final class ElementSkillState {
 		float capPoints = (float) (CombatState.crystallizationCapHearts(level) * 2.0);
 		float current = player.getAbsorptionAmount();
 		player.setAbsorptionAmount(Math.max(current, Math.min(capPoints, current + points)));
+		burst(player, ParticleTypes.CRIT, 20, 1.8, 0.05);
+		burst(player, ParticleTypes.ENCHANTED_HIT, 10, 1.4, 0.05);
+	}
+
+	private static void burst(LivingEntity center, ParticleOptions effect, int count,
+			double radius, double speed) {
+		if (center == null || !(center.level() instanceof ServerLevel world)) {
+			return;
+		}
+		world.sendParticles(effect, center.getX(),
+				center.getY() + center.getBbHeight() * 0.55, center.getZ(),
+				count, radius * 0.5, 0.35, radius * 0.5, speed);
 	}
 
 	/** 记冷却；在冷却就返回 null（什么都不发生），批下来返回记录 */

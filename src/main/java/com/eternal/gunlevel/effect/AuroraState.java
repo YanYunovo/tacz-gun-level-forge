@@ -94,4 +94,22 @@ public final class AuroraState {
 	public static void consume(ItemStack gun) {
 		GunAuroraData.setHits(gun, 0);
 	}
+
+	/**
+	 * 一次换弹真正开始：先结束上一匣的极光标记；攒满就绪的这次换弹则消耗就绪并开新的极光匣。
+	 * 返回这一匣是不是极光匣。普通换弹和战术快速装填共用这一处，避免两条路行为分叉。
+	 */
+	public static boolean beginReload(ItemStack gun) {
+		if (gun.isEmpty()) {
+			return false;
+		}
+		GunAuroraData.set(gun, false);
+		int level = LevelScaling.levelOfStack(gun);
+		if (level > 0 && carries(gun) && isReady(gun)) {
+			consume(gun);
+			GunAuroraData.set(gun, true);
+			return true;
+		}
+		return false;
+	}
 }

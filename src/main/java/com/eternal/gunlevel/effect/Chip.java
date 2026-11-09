@@ -71,9 +71,9 @@ public enum Chip {
 	CRIT_MOD(ChipTier.BLUE),
 	/** 伤害改造：固定提升 5% 伤害加成 */
 	DAMAGE_MOD(ChipTier.BLUE),
-	/** 头部伤害改造：固定提升 10% 头部伤害加成 */
+	/** 弱点改造：固定提升 10% 爆头伤害 */
 	HEAD_DAMAGE_MOD(ChipTier.BLUE),
-	/** 暴击伤害改造：固定提升 10% 暴击伤害 */
+	/** 爆伤改造：固定提升 10% 暴击伤害 */
 	CRIT_DAMAGE_MOD(ChipTier.BLUE),
 	/**
 	 * 抵近射击：命中这一刻射手与目标的距离在 5 格内，这一发伤害 +15%，
@@ -157,14 +157,35 @@ public enum Chip {
 	 * 自己受到伤害、或连续一段时间没有击杀就整条清零 —— 见 {@link MedalState}。
 	 */
 	MEDAL(ChipTier.GOLD),
-	/** 弹药征用：击杀返还后备弹药，数量按永恒改装等级放大 */
+	/** 弹药征用：击杀后填充主弹匣，数量按弹匣容量与永恒改装等级放大，最多溢至正常容量 300% */
 	SALVAGE(ChipTier.GOLD),
 	/**
 	 * 战术换弹：换弹时间缩短，换弹完成后的几秒内伤害提升（该枪 NBT 记截止时刻，
 	 * 出膛定格 —— 见 {@link TacticalReloadState}）；
 	 * 主动「快速装填」立刻完成当前换弹（把主弹匣填满）。
 	 */
-	TAC_RELOAD(ChipTier.GOLD);
+	TAC_RELOAD(ChipTier.GOLD),
+	/**
+	 * 爆裂射击：射击时按概率把一发拆成两段 55% 伤害，**每一段都算一次独立命中**；
+	 * 每段命中攒 1 点充能，300 点进入 5 秒「过载射击」（必定爆裂，另有 40% 追加一段），
+	 * 状态结束后失效 4 秒并清空概率层。见 {@link BurstShotState}。
+	 */
+	BURST_SHOT(ChipTier.GOLD),
+	/**
+	 * 极限火力：常驻降低伤害加成、提高射速；装火核芯后按 V 切换下蹲定点射击。
+	 * 定点期间主弹匣固定 1 发、直接调用备弹，并获得爆炸伤害加成；连续命中再叠射速与爆炸范围。
+	 */
+	EXTREME_FIRE(ChipTier.GOLD),
+	/**
+	 * 刺骨冰锥：装冰核芯时获得伤害加成，子弹沿途留下减速冰雾；命中叠「刺骨寒意」，
+	 * 每层独立结算持续伤害，三层时下一次命中获得最终伤害提升。见 {@link IceSpikeState}。
+	 */
+	ICE_SPIKE(ChipTier.GOLD),
+	/**
+	 * 战术目镜：命中积累分析点数，阈值给爆头/移速加成；300点解锁主动「数据倾泻」，
+	 * 消耗点数开启全部能力、量子边框、极强追踪与概率不耗弹。见 {@link GogglesState}。
+	 */
+	GOGGLES(ChipTier.GOLD);
 
 	/** 品级决定贴图、奖池与稀有度；槽位不分品级（LV3 一颗、LV5 两颗，蓝金混装） */
 	private final ChipTier tier;
@@ -195,8 +216,8 @@ public enum Chip {
 			case FIRE_RATE_MOD -> "射速改造";
 			case CRIT_MOD -> "暴击改造";
 			case DAMAGE_MOD -> "伤害改造";
-			case HEAD_DAMAGE_MOD -> "头部伤害改造";
-			case CRIT_DAMAGE_MOD -> "暴击伤害改造";
+			case HEAD_DAMAGE_MOD -> "弱点改造";
+			case CRIT_DAMAGE_MOD -> "爆伤改造";
 			case CLOSE_QUARTERS -> "抵近射击";
 			case FOCUSED_STRIKE -> "凝神打击";
 			case RHYTHM_SHOT -> "节奏射击";
@@ -229,6 +250,10 @@ public enum Chip {
 			case MEDAL -> "荣誉勋章";
 			case SALVAGE -> "弹药征用";
 			case TAC_RELOAD -> "战术换弹";
+			case BURST_SHOT -> "爆裂射击";
+			case EXTREME_FIRE -> "极限火力";
+			case ICE_SPIKE -> "刺骨冰锥";
+			case GOGGLES -> "战术目镜";
 		};
 	}
 
@@ -239,7 +264,7 @@ public enum Chip {
 	public boolean hasActiveSkill() {
 		return this == WIND_BLESSING || this == THUNDER_VOICE || this == FLAME_ROAR
 				|| this == RIME || this == TIDE || this == VINE || this == ROCK_WARD
-				|| this == TAC_RELOAD;
+				|| this == TAC_RELOAD || this == EXTREME_FIRE || this == GOGGLES;
 	}
 
 	/** 主动技能冷却完毕的提示文案：每颗芯片各说各的，别拿风的句子去提示雷 */
@@ -253,6 +278,7 @@ public enum Chip {
 			case VINE -> "msg.tacz_gun_level.vine.ready";
 			case ROCK_WARD -> "msg.tacz_gun_level.rock.ready";
 			case TAC_RELOAD -> "msg.tacz_gun_level.tac_reload.ready";
+			case GOGGLES -> "msg.tacz_gun_level.goggles.ready";
 			default -> "msg.tacz_gun_level.skill.ready";
 		};
 	}
@@ -262,8 +288,8 @@ public enum Chip {
 		return "chip.tacz_gun_level." + name().toLowerCase(Locale.ROOT);
 	}
 
-	/** 注册名，与物品 id、物品模型文件名一致 */
+	/** 注册名，与物品 id、物品模型文件名一致；品质前缀便于按金、紫、蓝维护物品定义 */
 	public String itemId() {
-		return "tactical_chip_" + name().toLowerCase(Locale.ROOT);
+		return tier.id() + "_tactical_chip_" + name().toLowerCase(Locale.ROOT);
 	}
 }

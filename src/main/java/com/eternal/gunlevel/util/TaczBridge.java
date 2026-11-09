@@ -26,6 +26,18 @@ final class TaczBridge {
 		iGun.setCurrentAmmoCount(gun, iGun.getCurrentAmmoCount(gun) + amount);
 	}
 
+	static int currentAmmoCount(ItemStack gun) {
+		IGun iGun = IGun.getIGunOrNull(gun);
+		return iGun == null ? 0 : Math.max(0, iGun.getCurrentAmmoCount(gun));
+	}
+
+	static void setAmmoCount(ItemStack gun, int count) {
+		IGun iGun = IGun.getIGunOrNull(gun);
+		if (iGun != null) {
+			iGun.setCurrentAmmoCount(gun, Math.max(0, count));
+		}
+	}
+
 	/** 这一匣装满是多少发（带配件修正，也含我们挂同一条链上的迅雷减容/弹匣扩容） */
 	static int magazineCapacity(ItemStack gun) {
 		IGun iGun = IGun.getIGunOrNull(gun);

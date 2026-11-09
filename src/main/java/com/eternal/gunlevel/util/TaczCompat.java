@@ -44,6 +44,19 @@ public final class TaczCompat {
 		}
 	}
 
+	/** 主弹匣当前发数；没装前置或不是枪返回 0 */
+	public static int currentAmmoCount(ItemStack gun) {
+		return TACZ_LOADED && gun != null && !gun.isEmpty()
+				? TaczBridge.currentAmmoCount(gun) : 0;
+	}
+
+	/** 写主弹匣当前发数；允许超过正常容量，调用方负责业务上限 */
+	public static void setAmmoCount(ItemStack gun, int count) {
+		if (TACZ_LOADED && gun != null && !gun.isEmpty()) {
+			TaczBridge.setAmmoCount(gun, count);
+		}
+	}
+
 	/**
 	 * 在射手手上或背包里找到对应 gunId 的枪物品；找不到返回 EMPTY。
 	 * 只用 isGun/gunIdOf 两个口子，所以这里不出现任何 TACZ 类型，前置缺席也只是找不到。

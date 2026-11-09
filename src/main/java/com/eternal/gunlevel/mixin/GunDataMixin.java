@@ -35,6 +35,10 @@ public abstract class GunDataMixin {
 				.contains(com.eternal.gunlevel.effect.Chip.FIRE_RATE_MOD)) {
 			scale *= 1.0 / (1.0 + GunLevelMod.CONFIG.chipBlueFireRate);
 		}
+		// 极限火力：常驻 20%，定点连击再叠一层（按等级放大，封顶 20%），客户端与服务端共用同一条链。
+		if (shooter != null) {
+			scale *= com.eternal.gunlevel.effect.ExtremeFireState.intervalScale(shooter);
+		}
 		if (interval <= 0 || scale == 1.0) {
 			return;
 		}

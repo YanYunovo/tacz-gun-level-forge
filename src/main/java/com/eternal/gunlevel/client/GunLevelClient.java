@@ -11,6 +11,7 @@ import com.eternal.gunlevel.menu.UpgradeMenu;
 import com.eternal.gunlevel.net.GunLevelNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.player.Input;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.OptionsScreen;
 import net.minecraft.client.gui.screens.OptionsSubScreen;
@@ -18,6 +19,7 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.ScreenEvent;
@@ -42,9 +44,15 @@ public final class GunLevelClient {
 		modBus.addListener(client::registerRenderers);
 		modBus.addListener(client::registerScreens);
 		forgeBus.addListener(client.chipSkillKeys::onClientTick);
+		forgeBus.addListener(FrozenShellClient::onClientTick);
+		forgeBus.addListener(FrozenShellClient::onRenderLiving);
 		forgeBus.addListener(client::addSettingsButton);
+		forgeBus.addListener(client::lockFixedFireInput);
 		// 收包处理：两个钩子都是客户端主线程上跑（SimpleChannel 已经 enqueueWork 过了）
 		GunLevelNetwork.onChipHint = hint -> client.chipHud.show(hint.chipOrdinal(), hint.kind());
+		GunLevelNetwork.onBurstState = state -> client.chipHud.updateBurst(
+				state.charge(), state.overloadUntil(), state.disabledUntil());
+		GunLevelNetwork.onFreezeSync = FrozenShellClient::update;
 		GunLevelNetwork.onWindGuard = on -> WindGuardState.applySpeedClient(
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onThunderDash = blocks -> ThunderDash.dash(Minecraft.getInstance().player, blocks);
@@ -58,11 +66,22 @@ public final class GunLevelClient {
 				Minecraft.getInstance().player, on);
 		GunLevelNetwork.onHuntSpeed = on -> HuntState.applySpeedClient(
 				Minecraft.getInstance().player, on);
+		GunLevelNetwork.onExtremeFire = sync -> com.eternal.gunlevel.effect.ExtremeFireState.updateClient(
+				Minecraft.getInstance().player == null ? null : Minecraft.getInstance().player.getUUID(),
+				sync.active(), sync.stacks());
+		GunLevelNetwork.onGoggles = sync -> {
+			java.util.UUID id = Minecraft.getInstance().player == null
+					? null : Minecraft.getInstance().player.getUUID();
+			com.eternal.gunlevel.effect.GogglesState.updateClient(id, sync.points(), sync.active(), sync.speed());
+			com.eternal.gunlevel.effect.GogglesState.applySpeedClient(Minecraft.getInstance().player, sync.speed());
+			client.chipHud.updateGoggles(sync.points(), sync.active());
+		};
 	}
 
 	private void registerOverlays(RegisterGuiOverlaysEvent event) {
 		// 画在所有原版 overlay 之后：经验条那一层已经画完了，我们只在它上方那一块叠字
 		event.registerAboveAll("chip_hint", chipHud::render);
+		event.registerAboveAll("goggles_frame", GogglesHud::render);
 	}
 
 	private void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -96,5 +115,17 @@ public final class GunLevelClient {
 		event.addListener(Button.builder(label,
 				button -> Minecraft.getInstance().setScreen(new GunLevelOptionsScreen(screen)))
 				.bounds(4, 4, width, 20).build());
+	}
+
+	/** 定点射击强制蹲下并锁死平面移动；跳和潜行输入也一并接管，避免客户端预测把玩家带跑。 */
+	private void lockFixedFireInput(MovementInputUpdateEvent event) {
+		if (!com.eternal.gunlevel.effect.ExtremeFireState.isActive(event.getEntity())) {
+			return;
+		}
+		Input input = event.getInput();
+		input.forwardImpulse = 0.0F;
+		input.leftImpulse = 0.0F;
+		input.jumping = false;
+		input.shiftKeyDown = true;
 	}
 }

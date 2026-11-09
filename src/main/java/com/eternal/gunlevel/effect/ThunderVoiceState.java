@@ -6,7 +6,9 @@ import com.eternal.gunlevel.item.GunCoreData;
 import com.eternal.gunlevel.net.GunLevelNetwork;
 import com.eternal.gunlevel.util.ChipHints;
 import com.eternal.gunlevel.util.TaczCompat;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -81,6 +83,14 @@ public final class ThunderVoiceState {
 		skill.announced = false;
 		TaczCompat.refillMagazine(gun, GunLevelMod.CONFIG.chipThunderDashAmmo);
 		GunLevelNetwork.sendThunderDash(player, GunLevelMod.CONFIG.chipThunderDashBlocks);
+		if (player.level() instanceof ServerLevel level) {
+			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(),
+					player.getY() + player.getBbHeight() * 0.6, player.getZ(),
+					24, 0.45, 0.6, 0.45, 0.08);
+			level.sendParticles(ParticleTypes.END_ROD, player.getX(),
+					player.getY() + player.getBbHeight() * 0.6, player.getZ(),
+					10, 0.35, 0.5, 0.35, 0.03);
+		}
 	}
 
 	/** 命中攒次数：每满配置里的次数就把冷却提前 1 秒，只在还在冷却时计数 */

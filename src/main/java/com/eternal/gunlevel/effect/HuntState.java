@@ -4,6 +4,7 @@ import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.item.GunChipData;
 import com.eternal.gunlevel.net.GunLevelNetwork;
 import com.eternal.gunlevel.util.ChipHints;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -42,6 +43,10 @@ public final class HuntState {
 	private static final String SPEED_MODIFIER_NAME = "tacz_gun_level_hunt_speed";
 	/** 标记特效：每多少个 tick 在目标头顶撒一次粒子（每 tick 撒会白刷网络包） */
 	private static final int MARK_PARTICLE_INTERVAL = 10;
+	private static final DustParticleOptions HUNT_RED =
+			new DustParticleOptions(new org.joml.Vector3f(0.9F, 0.08F, 0.05F), 1.1F);
+	private static final DustParticleOptions HUNT_GOLD =
+			new DustParticleOptions(new org.joml.Vector3f(1.0F, 0.75F, 0.12F), 1.2F);
 
 	private static final class Mark {
 		/** 被标记的目标 */
@@ -77,7 +82,8 @@ public final class HuntState {
 		if (target == null || target.isRemoved()) {
 			return;
 		}
-		long now = shooter.level().getGameTime();
+		ServerLevel world = shooter.serverLevel();
+		long now = world.getGameTime();
 		Mark mark = MARKS.computeIfAbsent(shooter.getUUID(), id -> new Mark());
 		if (mark.target == null) {
 			// 第一枪只负责挂上标记：它自己不算「命中被标记的敌人」，不记账
@@ -86,6 +92,7 @@ public final class HuntState {
 			mark.hits = 0;
 			mark.burstUntil = 0;
 			mark.lastHitAt = now;
+			spawnMarkEffect(world, target, mark, now);
 			return;
 		}
 		if (!mark.target.equals(target.getUUID())) {
@@ -94,9 +101,13 @@ public final class HuntState {
 		mark.lastHitAt = now;
 		mark.record += damage * GunLevelMod.CONFIG.chipHuntRecordRatio;
 		mark.hits++;
+		if (mark.hits == GunLevelMod.CONFIG.chipHuntBonusStacks) {
+			spawnMarkEffect(world, target, mark, now);
+		}
 		if (mark.burstUntil == 0 && mark.hits >= GunLevelMod.CONFIG.chipHuntBurstStacks) {
 			mark.burstUntil = now + Math.max(1,
 					Math.round(GunLevelMod.CONFIG.chipHuntBurstSeconds * 20));
+			spawnMarkEffect(world, target, mark, now);
 			ChipHints.show(shooter, Chip.HUNTING_MOMENT);
 		}
 		// 收割当场就查一次，不等下一个 tick
@@ -174,6 +185,7 @@ public final class HuntState {
 			}
 			markSpeed(player, mark, now);
 			if (now % MARK_PARTICLE_INTERVAL == 0) {
+				spawnMarkEffect(world, target, mark, now);
 				Vec3 pos = target.position().add(0, target.getBbHeight() * 0.85, 0);
 				world.sendParticles(ParticleTypes.END_ROD, pos.x(), pos.y(), pos.z(),
 						3, target.getBbWidth() * 0.4, 0.15, target.getBbWidth() * 0.4, 0.0);
@@ -186,11 +198,38 @@ public final class HuntState {
 		MARKS.clear();
 	}
 
+	private static void spawnMarkEffect(ServerLevel world, LivingEntity target, Mark mark, long now) {
+		boolean empowered = mark.hits >= GunLevelMod.CONFIG.chipHuntBonusStacks;
+		boolean bursting = mark.burstUntil != 0 && now < mark.burstUntil;
+		int points = bursting ? 16 : empowered ? 12 : 8;
+		double radius = target.getBbWidth() * 0.6 + 0.25;
+		double baseAngle = now * 0.12;
+		for (int i = 0; i < points; i++) {
+			double angle = baseAngle + Math.PI * 2.0 * i / points;
+			double x = target.getX() + Math.cos(angle) * radius;
+			double z = target.getZ() + Math.sin(angle) * radius;
+			double y = bursting
+					? target.getY() + target.getBbHeight() * (0.15 + 0.7 * (i % 4) / 3.0)
+					: target.getY() + target.getBbHeight() * (empowered ? 0.7 : 0.5);
+			DustParticleOptions dust = empowered && (!bursting || i % 2 == 0) ? HUNT_GOLD : HUNT_RED;
+			world.sendParticles(dust, x, y, z, 1, 0, 0, 0, 0);
+		}
+		if (bursting) {
+			Vec3 center = target.position().add(0, target.getBbHeight() * 0.5, 0);
+			world.sendParticles(ParticleTypes.CRIT, center.x(), center.y(), center.z(),
+					4, 0.2, 0.3, 0.2, 0.0);
+		}
+	}
+
 	/** 结算记录伤害：走固定伤害那条路（不吃护甲、不吃暴击、不占受害者受伤间隔、归因射手） */
 	private static void settle(ServerPlayer shooter, LivingEntity target, Mark mark, double ratio) {
 		double amount = mark.record * ratio;
 		if (amount > 0) {
 			CombatState.applyFixedDamage(shooter.level(), target, shooter, (float) amount);
+			ServerLevel world = shooter.serverLevel();
+			Vec3 pos = target.position().add(0, target.getBbHeight() * 0.5, 0);
+			world.sendParticles(HUNT_GOLD, pos.x(), pos.y(), pos.z(), 16, 0.35, 0.45, 0.35, 0.0);
+			world.sendParticles(ParticleTypes.CRIT, pos.x(), pos.y(), pos.z(), 20, 0.35, 0.45, 0.35, 0.0);
 		}
 		mark.record = 0;
 	}

@@ -4,6 +4,7 @@ import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.LevelConfig;
 import com.eternal.gunlevel.entity.RockConstructEntity;
 import com.eternal.gunlevel.util.ChipHints;
+import com.eternal.gunlevel.net.GunLevelNetwork;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
@@ -73,6 +74,7 @@ public final class CombatState {
 		long freezeUntil;
 		double freezePenalty;
 		long freezeReadyAt;
+		long nextFreezeSyncAt;
 		boolean slowed;
 		/** 燃烧：剩余跳数 + 下一次结算时间 + 间隔，跳数用完自然结束 */
 		int burnHitsLeft;
@@ -279,6 +281,8 @@ public final class CombatState {
 						GunLevelMod.CONFIG.freezeSeconds - c.freezePenalty);
 				c.freezeUntil = Math.max(c.freezeUntil, deadline(world, seconds));
 				c.freezeReadyAt = c.freezeUntil + ticks(GunLevelMod.CONFIG.freezeResetSeconds);
+				GunLevelNetwork.sendFreeze(victim, c.freezeUntil);
+				c.nextFreezeSyncAt = world.getGameTime() + 5;
 				sendParticles(world, victim, ParticleTypes.SNOWFLAKE, 20);
 			}
 			case BLOOM -> {
@@ -501,9 +505,15 @@ public final class CombatState {
 	 */
 	private static void applyDirectDamage(Level world, LivingEntity target, Strike strike,
 			float amount, boolean allowCrit) {
+		applyDirectDamage(world, target, strike, amount, allowCrit, true);
+	}
+
+	private static void applyDirectDamage(Level world, LivingEntity target, Strike strike,
+			float amount, boolean allowCrit, boolean knockback) {
 		if (world.isClientSide || amount <= 0) {
 			return;
 		}
+		Vec3 velocityBefore = knockback ? null : target.getDeltaMovement();
 		LivingEntity attacker = strike.attacker();
 		boolean attributed = attacker != null && !attacker.isRemoved();
 		if (allowCrit && attributed && world.getRandom().nextFloat() < strike.critChance()) {
@@ -511,6 +521,10 @@ public final class CombatState {
 			sendParticles(world, target, ParticleTypes.ENCHANTED_HIT, 6);
 		}
 		applyFixedDamage(world, target, attributed ? attacker : null, amount);
+		if (velocityBefore != null) {
+			target.setDeltaMovement(velocityBefore);
+			target.hurtMarked = true;
+		}
 	}
 
 	/**
@@ -585,10 +599,10 @@ public final class CombatState {
 			if ((bleeding || shocked) && t % DOT_INTERVAL == 0) {
 				Strike strike = new Strike(resolveShooter(world, c), c.critChance);
 				if (bleeding) {
-					// 流血不暴击
+					// 流血不暴击，也不让每跳伤害把目标推开
 					applyDirectDamage(world, victim, strike,
 							(float) (GunLevelMod.CONFIG.bleedDamagePerSecond * DOT_INTERVAL / 20.0),
-							false);
+							false, false);
 				}
 				if (shocked) {
 					// 感电每次结算都按武器面板暴击率掷骰
@@ -602,6 +616,10 @@ public final class CombatState {
 
 			if (t < c.freezeUntil) {
 				freezeInPlace(victim);
+				if (t >= c.nextFreezeSyncAt) {
+					GunLevelNetwork.sendFreeze(victim, c.freezeUntil);
+					c.nextFreezeSyncAt = t + 5;
+				}
 			}
 
 			// 燃烧：按自己的间隔逐跳结算，跳数用完自然结束

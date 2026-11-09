@@ -3,6 +3,9 @@ package com.eternal.gunlevel.effect;
 import com.eternal.gunlevel.GunLevelMod;
 import com.eternal.gunlevel.LevelConfig;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.UUID;
@@ -57,7 +60,13 @@ public final class FervorState {
 		}
 		stack.lastHitAt = time;
 		stack.hits++;
-		return stack.hits == 1;
+		boolean entered = stack.hits == 1;
+		if (entered && shooter.level() instanceof ServerLevel world) {
+			net.minecraft.world.phys.Vec3 pos = shooter.position().add(0, shooter.getBbHeight() * 0.5, 0);
+			world.sendParticles(ParticleTypes.FLAME, pos.x(), pos.y(), pos.z(),
+					12, 0.35, 0.45, 0.35, 0.0);
+		}
+		return entered;
 	}
 
 	public static void tick(MinecraftServer server) {
@@ -66,7 +75,33 @@ public final class FervorState {
 		}
 		long time = server.overworld().getGameTime();
 		long reset = resetTicks();
+		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+			Stack stack = STACKS.get(player.getUUID());
+			if (stack == null || stack.hits <= 0) {
+				continue;
+			}
+			ServerLevel world = player.serverLevel();
+			long now = world.getGameTime();
+			if (now - stack.lastHitAt < reset && now % 10 == 0) {
+				spawnAura(world, player, stack.hits, now);
+			}
+		}
 		STACKS.entrySet().removeIf(entry -> time - entry.getValue().lastHitAt >= reset);
+	}
+
+	private static void spawnAura(ServerLevel world, ServerPlayer player, int hits, long now) {
+		double strength = Math.min(1.0, hits / 60.0);
+		int count = 2 + (int) Math.round(strength * 4.0);
+		double radius = 0.55 + strength * 0.15;
+		double base = now * 0.22 + player.getId() * 0.73;
+		for (int i = 0; i < count; i++) {
+			double angle = base + Math.PI * 2.0 * i / count;
+			double x = player.getX() + Math.cos(angle) * radius;
+			double y = player.getY() + player.getBbHeight() * 0.35
+					+ Math.sin(now * 0.18 + i) * 0.18;
+			double z = player.getZ() + Math.sin(angle) * radius;
+			world.sendParticles(ParticleTypes.FLAME, x, y, z, 1, 0, 0, 0, 0);
+		}
 	}
 
 	public static void clear() {

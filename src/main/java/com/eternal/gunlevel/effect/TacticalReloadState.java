@@ -1,11 +1,14 @@
 package com.eternal.gunlevel.effect;
 
 import com.eternal.gunlevel.GunLevelMod;
+import com.eternal.gunlevel.item.GunAuroraData;
 import com.eternal.gunlevel.util.ChipHints;
 import com.eternal.gunlevel.util.TaczCompat;
 import com.tacz.guns.api.entity.ReloadState;
 import com.tacz.guns.api.item.IGun;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.nbt.CompoundTag;
@@ -58,7 +61,7 @@ public final class TacticalReloadState {
 		return nbt != null && time < nbt.getLong(TAG);
 	}
 
-	private static void mark(ItemStack gun, long time) {
+	public static void mark(ItemStack gun, long time) {
 		long until = time + Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipTacReloadBonusSeconds * 20));
 		gun.getOrCreateTag().putLong(TAG, until);
@@ -114,14 +117,32 @@ public final class TacticalReloadState {
 		if (iGun == null) {
 			return;
 		}
-		int capacity = TaczCompat.magazineCapacity(gun);
-		if (capacity <= 0) {
+		// 快速装填也走普通换弹的「换弹开始」钩子：结束上一匣极光标记，就绪的极光匣会在这里被消耗并开启。
+		GunAuroraData.set(gun, false);
+		int baseCapacity = TaczCompat.magazineCapacity(gun);
+		if (baseCapacity <= 0) {
 			return;
 		}
+		boolean auroraMag = AuroraState.beginReload(gun);
+		int capacity = auroraMag
+				? (int) Math.max(1L, Math.round(baseCapacity
+						* GunLevelMod.CONFIG.chipAuroraMagMultiplier))
+				: baseCapacity;
 		iGun.setCurrentAmmoCount(gun, capacity);
+		// 所有「换弹完成」类效果都要吃到这次快速装填：战术换弹自己的伤害窗口。
+		mark(gun, now);
+		AuroraState.syncCarrier(player);
 		skill.readyAt = now + Math.max(1,
 				Math.round(GunLevelMod.CONFIG.chipTacReloadSkillCooldown * 20));
 		SkillLock.arm(player, Chip.TAC_RELOAD);
 		skill.announced = false;
+		if (player.level() instanceof ServerLevel level) {
+			level.sendParticles(ParticleTypes.ENCHANTED_HIT, player.getX(),
+					player.getY() + player.getBbHeight() * 0.6, player.getZ(),
+					14, 0.4, 0.5, 0.4, 0.08);
+			level.sendParticles(ParticleTypes.CRIT, player.getX(),
+					player.getY() + player.getBbHeight() * 0.6, player.getZ(),
+					6, 0.35, 0.45, 0.35, 0.05);
+		}
 	}
 }
